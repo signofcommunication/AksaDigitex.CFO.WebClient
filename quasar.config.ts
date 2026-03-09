@@ -49,6 +49,10 @@ export default defineConfig((ctx) => {
         // extendTsConfig (tsConfig) {}
       },
 
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url))
+      },
+
       vueRouterMode: 'hash', // available values: 'hash', 'history'
       // vueRouterBase,
       // vueDevtools,
@@ -86,7 +90,7 @@ export default defineConfig((ctx) => {
         ['vite-plugin-checker', {
           vueTsc: true,
           eslint: {
-            lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{ts,js,mjs,cjs,vue}"',
+            lintCommand: 'eslint -c ./eslint.config.js \"./src*/**/*.{ts,js,mjs,cjs,vue}\" --ignore-pattern \"src/features/.template/**\"',
             useFlatConfig: true
           }
         }, { server: false }]
