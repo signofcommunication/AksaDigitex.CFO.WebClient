@@ -8,11 +8,22 @@ const ErrorNotFound = () => import('@/pages/ErrorNotFound.vue');
 const DashboardPage = () => import('@/features/dashboard/pages/DashboardPage.vue');
 
 const routes: RouteRecordRaw[] = [
+  // Route Login dipisah (Fullscreen, tanpa Sidebar/Header)
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/pages/LoginPage.vue'),
+    meta: {
+      title: 'Login',
+    },
+  },
+
+  // Route Utama yang pakai MainLayout
   {
     path: '/',
     component: MainLayout,
     meta: {
-      requiresAuth: false,
+      requiresAuth: true, // Biasanya dashboard butuh auth
     },
     children: [
       {
@@ -24,22 +35,7 @@ const routes: RouteRecordRaw[] = [
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Dashboard' }],
         },
       },
-      // ============================================
-      // Add routes from other features here
-      // Example:
-      // {
-      //   path: 'reports',
-      //   name: 'reports',
-      //   component: () => import('@/features/reports/pages/ReportsPage.vue'),
-      //   meta: {
-      //     title: 'Reports',
-      //     breadcrumb: [
-      //       { label: 'Home', to: '/' },
-      //       { label: 'Reports' },
-      //     ],
-      //   },
-      // },
-      // ============================================
+      // Tambah route features lain di sini
     ],
   },
 

@@ -72,6 +72,7 @@ export const deepClone = <T>(obj: T): T => {
 /**
  * Debounce Function Utility
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   wait: number,
@@ -90,6 +91,7 @@ export const debounce = <T extends (...args: any[]) => any>(
 /**
  * Throttle Function Utility
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const throttle = <T extends (...args: any[]) => any>(
   func: T,
   limit: number,
@@ -107,7 +109,7 @@ export const throttle = <T extends (...args: any[]) => any>(
 /**
  * Check if value is empty
  */
-export const isEmpty = (value: any): boolean => {
+export const isEmpty = (value: unknown): boolean => {
   return (
     value === null ||
     value === undefined ||
@@ -120,6 +122,6 @@ export const isEmpty = (value: any): boolean => {
 /**
  * Check if value exists
  */
-export const isDefined = (value: any): boolean => {
+export const isDefined = (value: unknown): boolean => {
   return value !== null && value !== undefined;
 };
