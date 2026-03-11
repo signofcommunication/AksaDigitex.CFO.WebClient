@@ -76,9 +76,9 @@
           <p class="mt-1 text-sm text-[#718096]">Monthly performance comparison</p>
 
           <div class="mt-6 rounded-lg border border-dashed border-[#e8eef5] p-4">
-            <div class="relative h-[280px]">
+            <div ref="revenueChartRef" class="relative h-[280px]">
               <svg
-                class="absolute inset-0 h-full w-full"
+                class="pointer-events-none absolute inset-0 h-full w-full"
                 viewBox="0 0 1000 280"
                 preserveAspectRatio="none"
               >
@@ -96,7 +96,10 @@
                 <div
                   v-for="row in revenueData"
                   :key="row.month"
-                  class="flex min-w-[48px] flex-1 flex-col items-center gap-2"
+                  class="flex min-w-[48px] flex-1 cursor-pointer flex-col items-center gap-2"
+                  @mouseenter="onRevenueEnter(row, $event)"
+                  @mousemove="onRevenueMove($event)"
+                  @mouseleave="onRevenueLeave"
                 >
                   <div class="flex h-[220px] items-end gap-1.5">
                     <div
@@ -110,6 +113,20 @@
                   </div>
                   <span class="text-xs text-[#718096]">{{ row.month }}</span>
                 </div>
+              </div>
+
+              <div
+                v-if="hoveredRevenue"
+                class="pointer-events-none absolute z-20 min-w-[210px] rounded-xl border border-[#d7e0ec] bg-white px-4 py-3 text-base shadow-lg"
+                :style="{
+                  left: `${revenueTooltip.x}px`,
+                  top: `${revenueTooltip.y}px`,
+                }"
+              >
+                <p class="mb-2 text-black">{{ hoveredRevenue.month }}</p>
+                <p class="text-[#0066ff]">revenue : {{ hoveredRevenue.revenue }}</p>
+                <p class="text-[#ff9900]">expense : {{ hoveredRevenue.expense }}</p>
+                <p class="text-[#00aa44]">profit : {{ hoveredRevenue.profit }}</p>
               </div>
             </div>
 
@@ -131,15 +148,41 @@
           <h3 class="text-2xl font-bold text-[#1a202c]">Payment Distribution</h3>
           <p class="mt-1 text-sm text-[#718096]">By payment age</p>
 
-          <div class="mt-8 flex justify-center">
+          <div ref="donutChartRef" class="relative mt-8 flex justify-center">
+            <div class="relative h-[220px] w-[220px]">
+              <svg viewBox="0 0 220 220" class="h-full w-full">
+                <g transform="rotate(-90 110 110)">
+                  <circle
+                    v-for="segment in donutSegments"
+                    :key="segment.name"
+                    cx="110"
+                    cy="110"
+                    r="72"
+                    fill="transparent"
+                    :stroke="segment.color"
+                    stroke-width="34"
+                    stroke-linecap="butt"
+                    :stroke-dasharray="`${segment.length} ${donutCircumference - segment.length}`"
+                    :stroke-dashoffset="-segment.offset"
+                    class="cursor-pointer"
+                    @mouseenter="onDonutEnter(segment.name, segment.value, $event)"
+                    @mousemove="onDonutMove($event)"
+                    @mouseleave="onDonutLeave"
+                  />
+                </g>
+              </svg>
+              <div class="absolute inset-[58px] rounded-full bg-white"></div>
+            </div>
+
             <div
-              class="relative h-48 w-48 rounded-full"
+              v-if="hoveredDonut"
+              class="pointer-events-none absolute z-20 rounded-xl border border-[#d7e0ec] bg-white px-4 py-3 text-[36px] shadow-lg"
               :style="{
-                background:
-                  'conic-gradient(#0066ff 0 45%, #00aa44 45% 73%, #ff9900 73% 91%, #ff4444 91% 100%)',
+                left: `${donutTooltip.x}px`,
+                top: `${donutTooltip.y}px`,
               }"
             >
-              <div class="absolute inset-[26px] rounded-full bg-white"></div>
+              {{ hoveredDonut.name }} : {{ hoveredDonut.value }}
             </div>
           </div>
 
@@ -164,25 +207,57 @@
         <p class="mt-1 text-sm text-[#718096]">Actual vs. forecasted performance</p>
 
         <div class="mt-6 rounded-lg border border-dashed border-[#e8eef5] p-4">
-          <svg class="h-[220px] w-full" viewBox="0 0 1000 220" preserveAspectRatio="none">
-            <polyline
-              :points="projectionActualPoints"
-              fill="none"
-              stroke="#0066ff"
-              stroke-width="3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <polyline
-              :points="projectionForecastPoints"
-              fill="none"
-              stroke="#9966ff"
-              stroke-width="3"
-              stroke-dasharray="10 8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <div ref="projectionChartRef" class="relative h-[220px] w-full">
+            <svg
+              class="pointer-events-none h-[220px] w-full"
+              viewBox="0 0 1000 220"
+              preserveAspectRatio="none"
+            >
+              <polyline
+                :points="projectionActualPoints"
+                fill="none"
+                stroke="#0066ff"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <polyline
+                :points="projectionForecastPoints"
+                fill="none"
+                stroke="#9966ff"
+                stroke-width="3"
+                stroke-dasharray="10 8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+
+            <div class="absolute inset-0 flex">
+              <div
+                v-for="row in projectionData"
+                :key="`projection-${row.month}`"
+                class="h-full flex-1 cursor-pointer"
+                @mouseenter="onProjectionEnter(row, $event)"
+                @mousemove="onProjectionMove($event)"
+                @mouseleave="onProjectionLeave"
+              ></div>
+            </div>
+
+            <div
+              v-if="hoveredProjection"
+              class="pointer-events-none absolute z-20 min-w-[220px] rounded-xl border border-[#d7e0ec] bg-white px-4 py-3 text-base shadow-lg"
+              :style="{
+                left: `${projectionTooltip.x}px`,
+                top: `${projectionTooltip.y}px`,
+              }"
+            >
+              <p class="mb-2 text-black">{{ hoveredProjection.month }}</p>
+              <p class="text-[#0066ff]">
+                actual : {{ hoveredProjection.value === null ? '-' : hoveredProjection.value }}
+              </p>
+              <p class="text-[#9966ff]">forecast : {{ hoveredProjection.projection }}</p>
+            </div>
+          </div>
           <div class="mt-3 flex items-center justify-center gap-4 text-sm font-medium">
             <span class="flex items-center gap-1.5 text-[#0066ff]"
               ><i class="h-0.5 w-4 bg-[#0066ff]"></i>Actual</span
@@ -241,6 +316,12 @@ interface ProjectionRow {
   projection: number;
 }
 
+interface DistributionRow {
+  name: string;
+  value: number;
+  color: string;
+}
+
 const isRefreshing = ref(false);
 
 const revenueData: RevenueRow[] = [
@@ -268,12 +349,25 @@ const projectionData: ProjectionRow[] = [
   { month: 'Feb', value: null, projection: 125000 },
 ];
 
-const distributionData = [
+const distributionData: DistributionRow[] = [
   { name: '0-30 days', value: 45, color: '#0066ff' },
   { name: '31-60 days', value: 28, color: '#00aa44' },
   { name: '61-90 days', value: 18, color: '#ff9900' },
   { name: '90+ days', value: 9, color: '#ff4444' },
 ];
+
+const revenueChartRef = ref<HTMLElement | null>(null);
+const donutChartRef = ref<HTMLElement | null>(null);
+const projectionChartRef = ref<HTMLElement | null>(null);
+
+const hoveredRevenue = ref<RevenueRow | null>(null);
+const revenueTooltip = ref({ x: 0, y: 0 });
+
+const hoveredDonut = ref<{ name: string; value: number } | null>(null);
+const donutTooltip = ref({ x: 0, y: 0 });
+
+const hoveredProjection = ref<ProjectionRow | null>(null);
+const projectionTooltip = ref({ x: 0, y: 0 });
 
 const customers = [
   { name: 'PT Maju Konsultasi', amount: 625000, percentage: 22 },
@@ -357,6 +451,75 @@ const projectionForecastPoints = computed(() => {
 const formatCompact = (value: number) => {
   return `Rp ${(value / 1000).toFixed(0)}K`;
 };
+
+const donutCircumference = 2 * Math.PI * 72;
+const donutSegments = computed(() => {
+  let offset = 0;
+  return distributionData.map((item) => {
+    const length = (item.value / 100) * donutCircumference;
+    const segment = {
+      ...item,
+      offset,
+      length,
+    };
+    offset += length;
+    return segment;
+  });
+});
+
+function onRevenueEnter(row: RevenueRow, event: MouseEvent) {
+  hoveredRevenue.value = row;
+  onRevenueMove(event);
+}
+
+function onRevenueMove(event: MouseEvent) {
+  if (!revenueChartRef.value) return;
+  const rect = revenueChartRef.value.getBoundingClientRect();
+  revenueTooltip.value = {
+    x: event.clientX - rect.left + 12,
+    y: event.clientY - rect.top - 12,
+  };
+}
+
+function onRevenueLeave() {
+  hoveredRevenue.value = null;
+}
+
+function onDonutEnter(name: string, value: number, event: MouseEvent) {
+  hoveredDonut.value = { name, value };
+  onDonutMove(event);
+}
+
+function onDonutMove(event: MouseEvent) {
+  if (!donutChartRef.value) return;
+  const rect = donutChartRef.value.getBoundingClientRect();
+  donutTooltip.value = {
+    x: event.clientX - rect.left + 10,
+    y: event.clientY - rect.top + 10,
+  };
+}
+
+function onDonutLeave() {
+  hoveredDonut.value = null;
+}
+
+function onProjectionEnter(row: ProjectionRow, event: MouseEvent) {
+  hoveredProjection.value = row;
+  onProjectionMove(event);
+}
+
+function onProjectionMove(event: MouseEvent) {
+  if (!projectionChartRef.value) return;
+  const rect = projectionChartRef.value.getBoundingClientRect();
+  projectionTooltip.value = {
+    x: event.clientX - rect.left + 12,
+    y: event.clientY - rect.top - 12,
+  };
+}
+
+function onProjectionLeave() {
+  hoveredProjection.value = null;
+}
 
 const handleRefresh = () => {
   isRefreshing.value = true;
