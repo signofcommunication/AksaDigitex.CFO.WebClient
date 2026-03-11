@@ -34,9 +34,8 @@
     >
       <div class="sidebar-header row items-center justify-between">
         <div class="text-subtitle1 text-weight-bold text-grey-8">Menu</div>
-        <q-btn
+        <AppButton
           round
-          unelevated
           color="pink-1"
           text-color="red-5"
           icon="logout"
@@ -100,16 +99,28 @@
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <AppDialog
+      v-model="showLogoutDialog"
+      title="Konfirmasi "
+      message="Apakah Anda yakin ingin logout?"
+      ok-label="Logout"
+      cancel-label="Batal"
+      ok-color="negative"
+      persistent
+      @confirm="handleLogoutConfirmed"
+    />
   </q-layout>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { Dialog } from 'quasar';
 import { useRouter } from 'vue-router';
 import { routes, type SidebarMenuItem } from '@/router/routes';
+import { AppButton, AppDialog } from '@/shared/components';
 
 const leftDrawerOpen = ref(false);
+const showLogoutDialog = ref(false);
 const router = useRouter();
 
 const mainRoute = routes.find((item) => item.path === '/');
@@ -152,21 +163,11 @@ function handleMenuClick(menu: SidebarMenuItem) {
 }
 
 function confirmLogout() {
-  Dialog.create({
-    title: 'Konfirmasi Logout',
-    message: 'Apakah Anda yakin ingin logout?',
-    cancel: {
-      flat: true,
-      label: 'Batal',
-    },
-    ok: {
-      color: 'negative',
-      label: 'Logout',
-    },
-    persistent: true,
-  }).onOk(() => {
-    void router.push('/login');
-  });
+  showLogoutDialog.value = true;
+}
+
+function handleLogoutConfirmed() {
+  void router.push('/login');
 }
 </script>
 
