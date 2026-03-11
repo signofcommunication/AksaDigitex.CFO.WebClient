@@ -13,7 +13,7 @@
                 <q-item-section>Profile</q-item-section>
               </q-item>
               <q-separator />
-              <q-item clickable v-close-popup @click="handleLogout" class="text-red">
+              <q-item clickable v-close-popup @click="confirmLogout" class="text-red">
                 <q-item-section avatar>
                   <q-icon name="logout" color="red" />
                 </q-item-section>
@@ -26,18 +26,28 @@
     </q-header>
 
     <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="bg-white">
+      <div class="sidebar-header row items-center justify-between">
+        <div class="text-subtitle1 text-weight-bold text-grey-8">Menu</div>
+        <q-btn
+          round
+          unelevated
+          color="pink-1"
+          text-color="red-5"
+          icon="logout"
+          size="sm"
+          @click="confirmLogout"
+        />
+      </div>
+
       <q-scroll-area class="fit">
         <q-list padding class="q-mt-sm">
-          <q-item-label header class="text-weight-bold text-uppercase text-grey-8"
-            >Menu</q-item-label
-          >
-
-          <template v-for="menu in sidebarMenu" :key="menu.key">
+          <template v-for="menu in visibleSidebarMenu" :key="menu.key">
             <q-item
               v-if="!menu.children?.length"
               clickable
               v-ripple
               :to="menu.to"
+              @click="handleMenuClick(menu)"
               exact
               active-class="bg-blue-1 text-primary text-weight-medium"
               class="q-mx-sm q-mb-xs rounded-borders"
@@ -89,7 +99,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { Dialog } from 'quasar';
+import { useRouter } from 'vue-router';
 import { routes, type SidebarMenuItem } from '@/router/routes';
 
 const leftDrawerOpen = ref(false);
@@ -102,6 +113,10 @@ const sidebarMenu = computed<SidebarMenuItem[]>(() => {
     return menu as SidebarMenuItem[];
   }
   return [];
+});
+
+const visibleSidebarMenu = computed<SidebarMenuItem[]>(() => {
+  return sidebarMenu.value.filter((menu) => menu.key !== 'logout');
 });
 
 const expandedGroups = reactive<Record<string, boolean>>({});
@@ -124,7 +139,35 @@ function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
 }
 
-function handleLogout() {
-  void router.push('/login');
+function handleMenuClick(menu: SidebarMenuItem) {
+  if (menu.key === 'logout') {
+    confirmLogout();
+  }
+}
+
+function confirmLogout() {
+  Dialog.create({
+    title: 'Konfirmasi Logout',
+    message: 'Apakah Anda yakin ingin logout?',
+    cancel: {
+      flat: true,
+      label: 'Batal',
+    },
+    ok: {
+      color: 'negative',
+      label: 'Logout',
+    },
+    persistent: true,
+  }).onOk(() => {
+    void router.push('/login');
+  });
 }
 </script>
+
+<style scoped>
+.sidebar-header {
+  height: 64px;
+  padding: 0 16px;
+  border-bottom: 1px solid #f1f3f5;
+}
+</style>
