@@ -1,40 +1,76 @@
 <template>
-  <q-layout view="lHh Lpr lFf" class="main-layout bg-slate-900 text-white">
-    <!-- Animated Background -->
-    <div class="bg-shape shape-1"></div>
-    <div class="bg-shape shape-2"></div>
-    <div class="bg-shape shape-3"></div>
-
-    <q-header class="glass-header">
+  <q-layout view="lHh Lpr lFf">
+    <q-header bordered class="bg-white text-dark">
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
-        <q-toolbar-title class="text-weight-bold">
-          AksaDigitex <span class="text-primary">CFO</span>
-        </q-toolbar-title>
-        <div class="text-grey-4 text-caption">Quasar v{{ $q.version }}</div>
+
+        <q-toolbar-title>Aksa Digitex</q-toolbar-title>
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above class="glass-sidebar" :width="260">
-      <q-list class="q-pt-md">
-        <q-item-label header class="text-grey-5 font-weight-bold"> Menu Utama </q-item-label>
+    <q-drawer v-model="leftDrawerOpen" show-if-above bordered :width="280" class="sidebar-drawer">
+      <div class="sidebar-header row items-center justify-between">
+        <div class="sidebar-title">Menu</div>
+        <q-btn round unelevated color="pink-1" text-color="red-5" icon="logout" size="sm" />
+      </div>
 
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" class="nav-link" />
-
-        <q-separator dark class="q-my-md opacity-20" />
-
-        <q-item clickable v-ripple @click="handleLogout" class="logout-link">
-          <q-item-section avatar>
-            <q-icon name="logout" color="red-4" />
-          </q-item-section>
-          <q-item-section>
-            <q-item-label class="text-red-4 text-weight-medium">Logout</q-item-label>
-            <q-item-label caption class="text-red-2 text-caption"
-              >Keluar dari aplikasi</q-item-label
+      <q-scroll-area class="fit">
+        <q-list class="sidebar-list" padding>
+          <template v-for="menu in sidebarMenu" :key="menu.key">
+            <q-item
+              v-if="!menu.children?.length"
+              :clickable="Boolean(menu.to)"
+              :to="menu.to"
+              v-ripple="Boolean(menu.to)"
+              class="sidebar-item"
+              :class="{ 'sidebar-item-active': isItemActive(menu) }"
+              active-class="sidebar-item-active"
+              exact
             >
-          </q-item-section>
-        </q-item>
-      </q-list>
+              <q-item-section avatar>
+                <q-icon :name="menu.icon" size="20px" />
+              </q-item-section>
+              <q-item-section>{{ menu.label }}</q-item-section>
+            </q-item>
+
+            <q-expansion-item
+              v-else
+              :model-value="isExpanded(menu.key)"
+              @update:model-value="updateExpanded(menu.key, $event)"
+              :icon="menu.icon"
+              :label="menu.label"
+              :header-class="[
+                'sidebar-expansion-header',
+                { 'sidebar-active-text': isItemActive(menu) },
+              ]"
+              expand-icon="expand_more"
+              switch-toggle-side
+              class="sidebar-expansion"
+            >
+              <q-list class="q-pl-md">
+                <q-item
+                  v-for="child in menu.children"
+                  :key="child.key"
+                  :clickable="Boolean(child.to)"
+                  :to="child.to"
+                  v-ripple="Boolean(child.to)"
+                  class="sidebar-item"
+                  :class="{ 'sidebar-item-active': isItemActive(child) }"
+                  active-class="sidebar-item-active"
+                  exact
+                >
+                  <q-item-section avatar>
+                    <q-icon :name="child.icon" size="19px" />
+                  </q-item-section>
+                  <q-item-section :class="{ 'sidebar-active-text': isItemActive(child) }">
+                    {{ child.label }}
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-expansion-item>
+          </template>
+        </q-list>
+      </q-scroll-area>
     </q-drawer>
 
     <q-page-container class="relative-position">
@@ -44,22 +80,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink.vue';
-
-const router = useRouter();
-
-const linksList: EssentialLinkProps[] = [
-  {
-    title: 'Dashboard',
-    caption: 'Financial Overview',
-    icon: 'dashboard',
-    link: '/',
-  },
-];
+import { computed, reactive, ref } from 'vue';
+import { useRoute } from 'vue-router';
+import { routes, type SidebarMenuItem } from '@/router/routes';
 
 const leftDrawerOpen = ref(false);
+const route = useRoute();
+
+const mainRoute = routes.find((item) => item.path === '/');
+const sidebarMenu = computed<SidebarMenuItem[]>(() => {
+  const menu = mainRoute?.meta?.menu;
+  if (Array.isArray(menu)) {
+    return menu as SidebarMenuItem[];
+  }
+  return [];
+});
+
+const expandedGroups = reactive<Record<string, boolean>>({});
+
+for (const menu of sidebarMenu.value) {
+  if (menu.children?.length) {
+    expandedGroups[menu.key] = menu.expanded ?? true;
+  }
+}
+
+function isItemActive(item: SidebarMenuItem): boolean {
+  if (item.to) {
+    return route.path === item.to;
+  }
+
+  if (item.children?.length) {
+    return item.children.some((child) => isItemActive(child));
+  }
+
+  return item.forceActive === true;
+}
+
+function isExpanded(key: string): boolean {
+  return expandedGroups[key] ?? true;
+}
+
+function updateExpanded(key: string, value: boolean): void {
+  expandedGroups[key] = value;
+}
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
@@ -70,109 +133,58 @@ function handleLogout() {
 }
 </script>
 
-<style scoped lang="scss">
-.main-layout {
-  background: #0f172a; /* Deep slate background */
-  min-height: 100vh;
-  position: relative;
-  overflow: hidden;
+<style scoped>
+.sidebar-drawer {
+  background: #ffffff;
 }
 
-/* Dynamic Animated Background Shapes */
-.bg-shape {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(80px);
-  z-index: 0;
-  pointer-events: none;
-  animation: float 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+.sidebar-header {
+  height: 72px;
+  padding: 0 16px 0 18px;
+  border-bottom: 1px solid #f1f1f1;
 }
 
-.shape-1 {
-  width: 500px;
-  height: 500px;
-  background: rgba(37, 99, 235, 0.15); /* Primary Blue */
-  top: -10%;
-  left: 20%;
-  animation-delay: 0s;
+.sidebar-title {
+  color: #8a8a8a;
+  font-size: 26px;
+  font-weight: 700;
 }
 
-.shape-2 {
-  width: 400px;
-  height: 400px;
-  background: rgba(139, 92, 246, 0.1); /* Purple Secondary */
-  bottom: -10%;
-  right: 10%;
-  animation-delay: -5s;
+.sidebar-list {
+  color: #2d2d2d;
 }
 
-.shape-3 {
-  width: 600px;
-  height: 600px;
-  background: rgba(16, 185, 129, 0.08); /* Emerald Green accent */
-  top: 30%;
-  left: -10%;
-  animation-delay: -10s;
-}
-
-@keyframes float {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(50px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-30px, 40px) scale(0.9);
-  }
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-}
-
-/* Glassmorphism Classes */
-.glass-header {
-  background: rgba(15, 23, 42, 0.7) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: white !important;
-}
-
-.glass-sidebar {
-  background: rgba(15, 23, 42, 0.8) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  color: white;
-}
-
-.opacity-20 {
-  opacity: 0.2;
-}
-
-/* Nav Link Hover Effects */
-:deep(.nav-link),
-:deep(.q-item) {
+.sidebar-item {
+  min-height: 44px;
+  margin: 2px 8px;
   border-radius: 8px;
-  margin: 4px 12px;
-  transition: all 0.3s ease;
-  color: #e2e8f0;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.05) !important;
-    transform: translateX(4px);
-  }
+  font-weight: 500;
 }
 
-.logout-link {
-  border-radius: 8px;
-  margin: 4px 12px;
-  transition: all 0.3s ease;
+.sidebar-item-active {
+  color: #f04f58;
+}
 
-  &:hover {
-    background: rgba(239, 68, 68, 0.1) !important;
-    transform: translateX(4px);
-  }
+.sidebar-expansion {
+  margin-top: 4px;
+}
+
+.sidebar-expansion-header {
+  margin: 2px 8px;
+  min-height: 44px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.sidebar-active-text {
+  color: #f04f58;
+}
+
+:deep(.q-item__section--avatar) {
+  min-width: 32px;
+}
+
+:deep(.q-expansion-item__toggle-icon) {
+  color: #5f5f5f;
 }
 </style>
