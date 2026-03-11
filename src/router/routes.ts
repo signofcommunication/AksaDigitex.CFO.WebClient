@@ -52,7 +52,12 @@ export const routes: RouteRecordRaw[] = [
           expanded: true,
           forceActive: true,
           children: [
-            { key: 'laporan-keuangan', label: 'Laporan Keuangan', icon: 'assessment' },
+            {
+              key: 'laporan-keuangan',
+              label: 'Laporan Keuangan',
+              icon: 'assessment',
+              to: '/laporan-keuangan',
+            },
             { key: 'piutan-utang', label: 'Piutang & Utang', icon: 'receipt_long' },
             { key: 'sales-order', label: 'Sales Order', icon: 'shopping_cart' },
           ],
@@ -87,6 +92,15 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: 'Dashboard',
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Dashboard' }],
+        },
+      },
+      {
+        path: 'laporan-keuangan',
+        name: 'laporan-keuangan',
+        component: () => import('@/features/laporan-keuangan/pages/LaporanKeuanganPage.vue'),
+        meta: {
+          title: 'Laporan Keuangan',
+          breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Laporan Keuangan' }],
         },
       },
       // Tambah route features lain di sini
