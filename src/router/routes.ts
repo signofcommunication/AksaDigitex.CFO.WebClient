@@ -16,8 +16,23 @@ const ErrorNotFound = () => import('@/pages/ErrorNotFound.vue');
 
 // Import features
 const DashboardPage = () => import('@/features/dashboard/pages/DashboardPage.vue');
+const BlankLayout = () => import('@/layouts/BlankLayout.vue');
 
 export const routes: RouteRecordRaw[] = [
+  {
+    path: '/login',
+    component: BlankLayout,
+    children: [
+      {
+        path: '',
+        name: 'login',
+        component: () => import('@/pages/LoginPage.vue'),
+        meta: {
+          title: 'Login',
+        },
+      },
+    ],
+  },
   {
     path: '/',
     component: MainLayout,
@@ -41,6 +56,12 @@ export const routes: RouteRecordRaw[] = [
             { key: 'piutan-utang', label: 'Piutang & Utang', icon: 'receipt_long' },
             { key: 'sales-order', label: 'Sales Order', icon: 'shopping_cart' },
           ],
+        },
+        {
+          key: 'logout',
+          label: 'Logout',
+          icon: 'logout',
+          to: '/login',
         },
         // {
         //   key: 'log',

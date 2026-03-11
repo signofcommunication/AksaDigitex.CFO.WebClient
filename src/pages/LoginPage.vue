@@ -1,108 +1,104 @@
 <template>
-  <q-layout>
-    <q-page-container>
-      <q-page class="login-wrapper relative-position flex flex-center">
-        <!-- Background Elements -->
-        <div class="bg-shape shape-1"></div>
-        <div class="bg-shape shape-2"></div>
-        <div class="bg-shape shape-3"></div>
+  <q-page class="login-wrapper relative-position flex flex-center">
+    <!-- Background Elements -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
 
-        <div class="glass-card shadow-15">
-          <div class="card-content">
-            <!-- Logo / Branding -->
-            <div class="brand-section text-center q-mb-xl">
-              <div class="logo-container q-mb-md relative-position">
-                <q-icon name="account_balance" size="48px" color="primary" class="logo-icon" />
-                <div class="glow-effect"></div>
-              </div>
-              <h1 class="text-h4 text-weight-bolder text-white q-ma-none brand-title">
-                AksaDigitex <span class="text-primary">CFO</span>
-              </h1>
-              <p class="text-subtitle1 text-grey-4 q-mt-sm">Finance & Operations Portal</p>
-            </div>
-
-            <!-- Form Section -->
-            <q-form @submit="handleLogin" class="login-form">
-              <div class="input-group q-mb-md">
-                <q-input
-                  v-model="email"
-                  type="email"
-                  label="Email Address"
-                  label-color="grey-4"
-                  color="primary"
-                  dark
-                  standout="bg-white text-dark"
-                  class="premium-input"
-                  hide-bottom-space
-                  lazy-rules
-                  :rules="[(val) => !!val || 'Please enter your email']"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="mail" color="grey-5" />
-                  </template>
-                </q-input>
-              </div>
-
-              <div class="input-group q-mb-xl">
-                <q-input
-                  v-model="password"
-                  :type="showPassword ? 'text' : 'password'"
-                  label="Password"
-                  label-color="grey-4"
-                  color="primary"
-                  dark
-                  standout="bg-white text-dark"
-                  class="premium-input"
-                  hide-bottom-space
-                  lazy-rules
-                  :rules="[(val) => !!val || 'Please enter your password']"
-                >
-                  <template v-slot:prepend>
-                    <q-icon name="lock" color="grey-5" />
-                  </template>
-                  <template v-slot:append>
-                    <q-icon
-                      :name="showPassword ? 'visibility_off' : 'visibility'"
-                      class="cursor-pointer"
-                      color="grey-5"
-                      @click="showPassword = !showPassword"
-                    />
-                  </template>
-                </q-input>
-              </div>
-
-              <div class="flex justify-between items-center q-mb-lg flex-wrap gap-2 text-white">
-                <q-checkbox
-                  v-model="rememberMe"
-                  dark
-                  color="primary"
-                  label="Remember me"
-                  class="text-grey-4 text-subtitle2"
-                />
-                <a href="#" class="forgot-link text-primary text-subtitle2 text-weight-medium"
-                  >Forgot Password?</a
-                >
-              </div>
-
-              <q-btn
-                unelevated
-                type="submit"
-                color="primary"
-                class="full-width premium-btn"
-                :loading="loading"
-              >
-                <span class="text-weight-bold text-subtitle1">Sign In</span>
-                <template v-slot:loading>
-                  <q-spinner-dots class="on-left" />
-                  Processing...
-                </template>
-              </q-btn>
-            </q-form>
+    <div class="glass-card shadow-15">
+      <div class="card-content">
+        <!-- Logo / Branding -->
+        <div class="brand-section text-center q-mb-xl">
+          <div class="logo-container q-mb-md relative-position">
+            <q-icon name="account_balance" size="48px" color="primary" class="logo-icon" />
+            <div class="glow-effect"></div>
           </div>
+          <h1 class="text-h4 text-weight-bolder text-white q-ma-none brand-title">
+            AksaDigitex <span class="text-primary">CFO</span>
+          </h1>
+          <p class="text-subtitle1 text-grey-4 q-mt-sm">Finance & Operations Portal</p>
         </div>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+
+        <!-- Form Section -->
+        <q-form @submit="handleLogin" class="login-form">
+          <div class="input-group q-mb-md">
+            <q-input
+              v-model="email"
+              type="email"
+              label="Email Address"
+              label-color="grey-4"
+              color="primary"
+              dark
+              standout="bg-white text-dark"
+              class="premium-input"
+              hide-bottom-space
+              lazy-rules
+              :rules="[(val) => !!val || 'Please enter your email']"
+            >
+              <template v-slot:prepend>
+                <q-icon name="mail" color="grey-5" />
+              </template>
+            </q-input>
+          </div>
+
+          <div class="input-group q-mb-xl">
+            <q-input
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              label="Password"
+              label-color="grey-4"
+              color="primary"
+              dark
+              standout="bg-white text-dark"
+              class="premium-input"
+              hide-bottom-space
+              lazy-rules
+              :rules="[(val) => !!val || 'Please enter your password']"
+            >
+              <template v-slot:prepend>
+                <q-icon name="lock" color="grey-5" />
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  :name="showPassword ? 'visibility_off' : 'visibility'"
+                  class="cursor-pointer"
+                  color="grey-5"
+                  @click="showPassword = !showPassword"
+                />
+              </template>
+            </q-input>
+          </div>
+
+          <div class="flex justify-between items-center q-mb-lg flex-wrap gap-2 text-white">
+            <q-checkbox
+              v-model="rememberMe"
+              dark
+              color="primary"
+              label="Remember me"
+              class="text-grey-4 text-subtitle2"
+            />
+            <a href="#" class="forgot-link text-primary text-subtitle2 text-weight-medium"
+              >Forgot Password?</a
+            >
+          </div>
+
+          <q-btn
+            unelevated
+            type="submit"
+            color="primary"
+            class="full-width premium-btn"
+            :loading="loading"
+          >
+            <span class="text-weight-bold text-subtitle1">Sign In</span>
+            <template v-slot:loading>
+              <q-spinner-dots class="on-left" />
+              Processing...
+            </template>
+          </q-btn>
+        </q-form>
+      </div>
+    </div>
+  </q-page>
 </template>
 
 <script setup lang="ts">

@@ -1,14 +1,18 @@
 <template>
   <div class="dashboard-stats">
-    <div v-if="stats" class="stats-grid">
-      <q-card class="glass-card stat-card shadow-10">
-        <q-card-section>
-          <div class="stat-content">
-            <div class="stat-label text-grey-4">Total Revenue</div>
-            <div class="stat-value text-white">{{ formatCurrency(stats.totalRevenue) }}</div>
+    <div v-if="stats" class="row q-col-gutter-lg">
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="q-pa-lg text-center">
+            <div class="text-caption text-grey-8 text-uppercase text-weight-medium q-mb-sm">
+              Total Revenue
+            </div>
+            <div class="text-h4 text-weight-bold text-dark q-mb-md">
+              {{ formatCurrency(stats.totalRevenue) }}
+            </div>
             <div
               :class="[
-                'stat-change',
+                'row items-center justify-center text-weight-medium',
                 stats.percentageChange >= 0 ? 'text-positive' : 'text-negative',
               ]"
             >
@@ -19,41 +23,55 @@
               />
               {{ Math.abs(stats.percentageChange) }}%
             </div>
-          </div>
-        </q-card-section>
-      </q-card>
+          </q-card-section>
+        </q-card>
+      </div>
 
-      <q-card class="glass-card stat-card shadow-10">
-        <q-card-section>
-          <div class="stat-content">
-            <div class="stat-label text-grey-4">Total Expenses</div>
-            <div class="stat-value text-white">{{ formatCurrency(stats.totalExpenses) }}</div>
-            <div class="stat-change text-grey-5">
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="q-pa-lg text-center">
+            <div class="text-caption text-grey-8 text-uppercase text-weight-medium q-mb-sm">
+              Total Expenses
+            </div>
+            <div class="text-h4 text-weight-bold text-dark q-mb-md">
+              {{ formatCurrency(stats.totalExpenses) }}
+            </div>
+            <div class="row items-center justify-center text-weight-medium text-grey-7">
               <q-icon name="account_balance_wallet" size="sm" class="q-mr-xs" />
               IDR
             </div>
-          </div>
-        </q-card-section>
-      </q-card>
+          </q-card-section>
+        </q-card>
+      </div>
 
-      <q-card class="glass-card stat-card shadow-10">
-        <q-card-section>
-          <div class="stat-content">
-            <div class="stat-label text-grey-4">Net Profit</div>
-            <div class="stat-value text-white">{{ formatCurrency(stats.netProfit) }}</div>
-            <div class="stat-change text-positive">
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="q-pa-lg text-center">
+            <div class="text-caption text-grey-8 text-uppercase text-weight-medium q-mb-sm">
+              Net Profit
+            </div>
+            <div class="text-h4 text-weight-bold text-dark q-mb-md">
+              {{ formatCurrency(stats.netProfit) }}
+            </div>
+            <div class="row items-center justify-center text-weight-medium text-positive">
               <q-icon name="trending_up" size="sm" class="q-mr-xs" />
               {{ profitPercentage }}% Margin
             </div>
-          </div>
-        </q-card-section>
-      </q-card>
+          </q-card-section>
+        </q-card>
+      </div>
     </div>
 
-    <div v-else class="stats-skeleton">
-      <q-skeleton type="rect" height="120px" class="glass-skeleton" dark />
-      <q-skeleton type="rect" height="120px" class="glass-skeleton" dark />
-      <q-skeleton type="rect" height="120px" class="glass-skeleton" dark />
+    <div v-else class="row q-col-gutter-lg">
+      <div class="col-12 col-md-4">
+        <q-skeleton type="rect" height="150px" />
+      </div>
+      <div class="col-12 col-md-4">
+        <q-skeleton type="rect" height="150px" />
+      </div>
+      <div class="col-12 col-md-4">
+        <q-skeleton type="rect" height="150px" />
+      </div>
     </div>
   </div>
 </template>
@@ -86,88 +104,14 @@ const profitPercentage = computed(() => {
   width: 100%;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.glass-card {
-  background: rgba(30, 41, 59, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    opacity: 0.5;
-  }
+.stat-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-    background: rgba(30, 41, 59, 0.5);
-    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
-}
-
-.stat-content {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.stat-label {
-  font-size: 14px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
-}
-
-.stat-value {
-  font-size: 36px;
-  font-weight: 700;
-  margin: 4px 0 16px 0;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: -1px;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.stat-change {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.stats-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-}
-
-.glass-skeleton {
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.02);
 }
 </style>
