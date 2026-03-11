@@ -34,7 +34,7 @@ interface Props {
   persistent?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   message: '',
   okLabel: 'OK',
   cancelLabel: 'Cancel',
