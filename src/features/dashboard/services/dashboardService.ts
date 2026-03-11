@@ -15,6 +15,8 @@ class DashboardService {
       // const response = await api.get('/dashboard');
       // return response.data;
 
+      await Promise.resolve(); // Fix for require-await ESLint rule
+
       // Mock data untuk development
       return {
         stats: {

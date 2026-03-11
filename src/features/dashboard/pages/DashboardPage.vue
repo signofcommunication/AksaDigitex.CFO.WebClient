@@ -113,113 +113,32 @@
               </div>
             </div>
 
-            <div class="mt-4 flex items-center justify-center gap-4 text-sm font-medium">
-              <span class="flex items-center gap-1.5 text-[#0066ff]"
-                ><i class="h-2.5 w-2.5 bg-[#0066ff]"></i>revenue</span
-              >
-              <span class="flex items-center gap-1.5 text-[#ff9900]"
-                ><i class="h-2.5 w-2.5 bg-[#ff9900]"></i>expense</span
-              >
-              <span class="flex items-center gap-1.5 text-[#00aa44]"
-                ><i class="h-0.5 w-4 bg-[#00aa44]"></i>profit</span
-              >
-            </div>
-          </div>
-        </section>
+    <!-- Error Alert -->
+    <q-banner v-if="error" class="bg-red-1 text-red-9 q-mb-lg">
+      <template #avatar>
+        <q-icon name="error" />
+      </template>
+      {{ error.message }}
+    </q-banner>
 
-        <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm">
-          <h3 class="text-2xl font-bold text-[#1a202c]">Payment Distribution</h3>
-          <p class="mt-1 text-sm text-[#718096]">By payment age</p>
+    <!-- Loading State -->
+    <div v-if="isLoading && !stats" class="loading-container">
+      <q-spinner color="primary" size="40px" />
+      <p>Loading dashboard data...</p>
+    </div>
 
-          <div class="mt-8 flex justify-center">
-            <div
-              class="relative h-48 w-48 rounded-full"
-              :style="{
-                background:
-                  'conic-gradient(#0066ff 0 45%, #00aa44 45% 73%, #ff9900 73% 91%, #ff4444 91% 100%)',
-              }"
-            >
-              <div class="absolute inset-[26px] rounded-full bg-white"></div>
-            </div>
-          </div>
-
-          <div class="mt-8 space-y-3">
-            <div
-              v-for="item in distributionData"
-              :key="item.name"
-              class="flex items-center justify-between text-sm"
-            >
-              <div class="flex items-center gap-2 text-[#718096]">
-                <span class="h-3 w-3 rounded-full" :style="{ backgroundColor: item.color }"></span>
-                <span>{{ item.name }}</span>
-              </div>
-              <span class="font-semibold text-[#1a202c]">{{ item.value }}%</span>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm">
-        <h3 class="text-2xl font-bold text-[#1a202c]">Revenue Projection</h3>
-        <p class="mt-1 text-sm text-[#718096]">Actual vs. forecasted performance</p>
-
-        <div class="mt-6 rounded-lg border border-dashed border-[#e8eef5] p-4">
-          <svg class="h-[220px] w-full" viewBox="0 0 1000 220" preserveAspectRatio="none">
-            <polyline
-              :points="projectionActualPoints"
-              fill="none"
-              stroke="#0066ff"
-              stroke-width="3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <polyline
-              :points="projectionForecastPoints"
-              fill="none"
-              stroke="#9966ff"
-              stroke-width="3"
-              stroke-dasharray="10 8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <div class="mt-3 flex items-center justify-center gap-4 text-sm font-medium">
-            <span class="flex items-center gap-1.5 text-[#0066ff]"
-              ><i class="h-0.5 w-4 bg-[#0066ff]"></i>Actual</span
-            >
-            <span class="flex items-center gap-1.5 text-[#9966ff]"
-              ><i class="h-0.5 w-4 bg-[#9966ff]"></i>Forecast</span
-            >
-          </div>
-        </div>
+    <!-- Dashboard Content -->
+    <div v-else class="dashboard-content">
+      <!-- Stats Section -->
+      <section class="dashboard-section">
+        <h2 class="section-title">Financial Overview</h2>
+        <DashboardStats :stats="stats" :is-loading="isLoading" />
       </section>
 
-      <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm">
-        <h3 class="text-2xl font-bold text-[#1a202c]">Top Customers</h3>
-        <p class="mt-1 text-sm text-[#718096]">By revenue contribution</p>
-
-        <div class="mt-6 space-y-3">
-          <article
-            v-for="customer in customers"
-            :key="customer.name"
-            class="rounded-lg bg-[#f5f7fa] p-4 transition hover:bg-[#ecf1f8]"
-          >
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <h4 class="font-semibold text-[#1a202c]">{{ customer.name }}</h4>
-              <p class="text-xl font-bold text-[#1a202c]">{{ formatCompact(customer.amount) }}</p>
-            </div>
-
-            <div class="mt-3 flex items-center gap-3">
-              <div class="h-2 flex-1 overflow-hidden rounded-full bg-white">
-                <div
-                  class="h-full rounded-full bg-[#0066ff]"
-                  :style="{ width: `${customer.percentage}%` }"
-                ></div>
-              </div>
-              <span class="text-xs font-medium text-[#718096]">{{ customer.percentage }}%</span>
-            </div>
-          </article>
-        </div>
+      <!-- Metrics Section -->
+      <section class="dashboard-section">
+        <h2 class="section-title">Key Metrics</h2>
+        <DashboardMetrics :metrics="metrics" :is-loading="isLoading" @refresh="handleRefresh" />
       </section>
     </div>
   </div>
@@ -365,3 +284,92 @@ const handleRefresh = () => {
   }, 900);
 };
 </script>
+
+<style scoped lang="scss">
+.dashboard-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+
+  h1 {
+    margin: 0 0 8px 0;
+    font-size: 32px;
+    font-weight: bold;
+    color: #333;
+  }
+
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.header-content {
+  flex: 1;
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.dashboard-section {
+  animation: slideIn 0.3s ease-out;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 16px 0;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 16px;
+    color: #666;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+
+    h1 {
+      font-size: 24px;
+    }
+  }
+}
+</style>
