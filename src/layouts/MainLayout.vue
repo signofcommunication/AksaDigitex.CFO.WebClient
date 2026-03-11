@@ -25,7 +25,13 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="bg-white">
+    <q-drawer
+      v-model="leftDrawerOpen"
+      show-if-above
+      bordered
+      class="bg-white"
+      style="scrollbar-width: none"
+    >
       <div class="sidebar-header row items-center justify-between">
         <div class="text-subtitle1 text-weight-bold text-grey-8">Menu</div>
         <q-btn
@@ -39,7 +45,7 @@
         />
       </div>
 
-      <q-scroll-area class="fit">
+      <q-scroll-area class="fit sidebar-scroll-area">
         <q-list padding class="q-mt-sm">
           <template v-for="menu in visibleSidebarMenu" :key="menu.key">
             <q-item
