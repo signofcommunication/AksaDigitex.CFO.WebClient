@@ -32,7 +32,7 @@ export function useDashboard() {
   };
 
   onMounted(() => {
-    fetchDashboardData();
+    void fetchDashboardData();
   });
 
   return {

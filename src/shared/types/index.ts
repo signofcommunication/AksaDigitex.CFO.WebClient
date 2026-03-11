@@ -5,7 +5,7 @@ export interface ApiError {
   status: number;
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -49,7 +49,7 @@ export interface LoadingState {
 export interface Filter {
   field: string;
   operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
-  value: any;
+  value: unknown;
 }
 
 /**

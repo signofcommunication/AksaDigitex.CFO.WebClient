@@ -1,43 +1,77 @@
 <template>
   <div class="dashboard-stats">
-    <div v-if="stats" class="stats-grid">
-      <q-card class="stat-card">
-        <q-card-section>
-          <div class="stat-content">
-            <div class="stat-label">Total Revenue</div>
-            <div class="stat-value">{{ formatCurrency(stats.totalRevenue) }}</div>
-            <div :class="['stat-change', stats.percentageChange >= 0 ? 'positive' : 'negative']">
-              {{ stats.percentageChange >= 0 ? '+' : '' }}{{ stats.percentageChange }}%
+    <div v-if="stats" class="row q-col-gutter-lg">
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="q-pa-lg text-center">
+            <div class="text-caption text-grey-8 text-uppercase text-weight-medium q-mb-sm">
+              Total Revenue
             </div>
-          </div>
-        </q-card-section>
-      </q-card>
+            <div class="text-h4 text-weight-bold text-dark q-mb-md">
+              {{ formatCurrency(stats.totalRevenue) }}
+            </div>
+            <div
+              :class="[
+                'row items-center justify-center text-weight-medium',
+                stats.percentageChange >= 0 ? 'text-positive' : 'text-negative',
+              ]"
+            >
+              <q-icon
+                :name="stats.percentageChange >= 0 ? 'trending_up' : 'trending_down'"
+                size="sm"
+                class="q-mr-xs"
+              />
+              {{ Math.abs(stats.percentageChange) }}%
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
 
-      <q-card class="stat-card">
-        <q-card-section>
-          <div class="stat-content">
-            <div class="stat-label">Total Expenses</div>
-            <div class="stat-value">{{ formatCurrency(stats.totalExpenses) }}</div>
-            <div class="stat-change neutral">IDR</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="q-pa-lg text-center">
+            <div class="text-caption text-grey-8 text-uppercase text-weight-medium q-mb-sm">
+              Total Expenses
+            </div>
+            <div class="text-h4 text-weight-bold text-dark q-mb-md">
+              {{ formatCurrency(stats.totalExpenses) }}
+            </div>
+            <div class="row items-center justify-center text-weight-medium text-grey-7">
+              <q-icon name="account_balance_wallet" size="sm" class="q-mr-xs" />
+              IDR
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
 
-      <q-card class="stat-card">
-        <q-card-section>
-          <div class="stat-content">
-            <div class="stat-label">Net Profit</div>
-            <div class="stat-value">{{ formatCurrency(stats.netProfit) }}</div>
-            <div class="stat-change positive">+{{ profitPercentage }}%</div>
-          </div>
-        </q-card-section>
-      </q-card>
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="stat-card">
+          <q-card-section class="q-pa-lg text-center">
+            <div class="text-caption text-grey-8 text-uppercase text-weight-medium q-mb-sm">
+              Net Profit
+            </div>
+            <div class="text-h4 text-weight-bold text-dark q-mb-md">
+              {{ formatCurrency(stats.netProfit) }}
+            </div>
+            <div class="row items-center justify-center text-weight-medium text-positive">
+              <q-icon name="trending_up" size="sm" class="q-mr-xs" />
+              {{ profitPercentage }}% Margin
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
     </div>
 
-    <div v-else class="stats-skeleton">
-      <q-skeleton type="rect" height="100px" class="stat-skeleton" />
-      <q-skeleton type="rect" height="100px" class="stat-skeleton" />
-      <q-skeleton type="rect" height="100px" class="stat-skeleton" />
+    <div v-else class="row q-col-gutter-lg">
+      <div class="col-12 col-md-4">
+        <q-skeleton type="rect" height="150px" />
+      </div>
+      <div class="col-12 col-md-4">
+        <q-skeleton type="rect" height="150px" />
+      </div>
+      <div class="col-12 col-md-4">
+        <q-skeleton type="rect" height="150px" />
+      </div>
     </div>
   </div>
 </template>
@@ -48,17 +82,19 @@ import type { DashboardStats } from '../types';
 import { formatCurrency } from '@/shared/utils';
 
 interface Props {
-  stats?: DashboardStats;
-  isLoading?: boolean;
+  stats?: DashboardStats | undefined;
+  isLoading?: boolean | undefined;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
 });
 
 const profitPercentage = computed(() => {
-  // Calculate profit margin percentage
-  // This is a simple example
+  // Calculate profit margin percentage based on stats if available
+  if (props.stats?.totalRevenue && props.stats?.netProfit) {
+    return ((props.stats.netProfit / props.stats.totalRevenue) * 100).toFixed(1);
+  }
   return 32.5;
 });
 </script>
@@ -68,72 +104,14 @@ const profitPercentage = computed(() => {
   width: 100%;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-}
-
 .stat-card {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
-}
-
-.stat-content {
-  text-align: center;
-  padding: 10px 0;
-}
-
-.stat-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
-  margin: 10px 0;
-  font-family: 'Courier New', monospace;
-}
-
-.stat-change {
-  font-size: 13px;
-  font-weight: 600;
-
-  &.positive {
-    color: #10b981;
-  }
-
-  &.negative {
-    color: #ef4444;
-  }
-
-  &.neutral {
-    color: #6b7280;
-  }
-}
-
-.stats-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.stat-skeleton {
-  border-radius: 8px;
 }
 </style>
