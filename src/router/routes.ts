@@ -58,8 +58,18 @@ export const routes: RouteRecordRaw[] = [
               icon: 'assessment',
               to: '/laporan-keuangan',
             },
-            { key: 'piutan-utang', label: 'Piutang & Utang', icon: 'receipt_long' },
-            { key: 'sales-order', label: 'Sales Order', icon: 'shopping_cart' },
+            {
+              key: 'piutang-utang',
+              label: 'Piutang & Utang',
+              icon: 'receipt_long',
+              to: '/piutang-utang',
+            },
+            {
+              key: 'sales-order',
+              label: 'Sales Order',
+              icon: 'shopping_cart',
+              to: '/sales-order',
+            },
           ],
         },
         {
@@ -101,6 +111,24 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: 'Laporan Keuangan',
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Laporan Keuangan' }],
+        },
+      },
+      {
+        path: 'piutang-utang',
+        name: 'piutang-utang',
+        component: () => import('@/features/laporan-keuangan/pages/UtangPiutangPage.vue'),
+        meta: {
+          title: 'Piutang & Utang',
+          breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Piutang & Utang' }],
+        },
+      },
+      {
+        path: 'sales-order',
+        name: 'sales-order',
+        component: () => import('@/features/laporan-keuangan/pages/SalesOrderPage.vue'),
+        meta: {
+          title: 'Sales Order',
+          breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Sales Order' }],
         },
       },
       // Tambah route features lain di sini
