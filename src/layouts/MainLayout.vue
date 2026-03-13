@@ -4,7 +4,30 @@
       <q-toolbar>
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title>Aksa Digitex CFO</q-toolbar-title>
+        <q-toolbar-title>CFO</q-toolbar-title>
+
+        <q-chip
+          dense
+          class="accurate-indicator q-mr-sm"
+          :class="{
+            'accurate-indicator--online': accurateOnline === true,
+            'accurate-indicator--offline': accurateOnline === false,
+            'accurate-indicator--checking': accurateOnline === null,
+          }"
+        >
+          <q-spinner-dots v-if="accurateOnline === null" size="12px" color="amber-3" />
+          <q-icon
+            v-else
+            name="fiber_manual_record"
+            size="8px"
+            class="accurate-dot"
+            :class="accurateOnline ? 'accurate-dot--online' : 'accurate-dot--offline'"
+          />
+          <span class="q-ml-xs accurate-indicator__label">{{ accurateStatusLabel }}</span>
+          <q-tooltip anchor="bottom middle" self="top middle">
+            Endpoint: {{ accurateHealthPath }}
+          </q-tooltip>
+        </q-chip>
 
         <q-btn flat round icon="account_circle">
           <q-menu>
@@ -114,14 +137,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { api } from '@/boot/axios';
 import { routes, type SidebarMenuItem } from '@/router/routes';
 import { AppButton, AppDialog } from '@/shared/components';
 
 const leftDrawerOpen = ref(false);
 const showLogoutDialog = ref(false);
+const accurateOnline = ref<boolean | null>(null);
 const router = useRouter();
+let accurateCheckInterval: ReturnType<typeof setInterval> | undefined;
+
+const env = import.meta.env as Record<string, string | undefined>;
+const accurateHealthPath = env.VITE_ACCURATE_HEALTH_PATH ?? '/accurate/health';
+
+const accurateStatusLabel = computed(() => {
+  if (accurateOnline.value === null) {
+    return 'Checking Accurate';
+  }
+
+  return accurateOnline.value ? 'Accurate Online' : 'Accurate Offline';
+});
 
 const mainRoute = routes.find((item) => item.path === '/');
 const sidebarMenu = computed<SidebarMenuItem[]>(() => {
@@ -169,9 +206,74 @@ function confirmLogout() {
 function handleLogoutConfirmed() {
   void router.push('/login');
 }
+
+async function checkAccurateConnection() {
+  try {
+    await api.get(accurateHealthPath, { timeout: 8000 });
+    accurateOnline.value = true;
+  } catch {
+    accurateOnline.value = false;
+  }
+}
+
+onMounted(() => {
+  void checkAccurateConnection();
+  accurateCheckInterval = setInterval(() => {
+    void checkAccurateConnection();
+  }, 45000);
+});
+
+onBeforeUnmount(() => {
+  if (accurateCheckInterval) {
+    clearInterval(accurateCheckInterval);
+  }
+});
 </script>
 
 <style scoped>
+.accurate-indicator {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  backdrop-filter: blur(2px);
+}
+
+.accurate-indicator__label {
+  letter-spacing: 0.1px;
+}
+
+.accurate-dot {
+  margin-right: 2px;
+}
+
+.accurate-dot--online {
+  color: #2dd4bf;
+}
+
+.accurate-dot--offline {
+  color: #f87171;
+}
+
+.accurate-indicator--online {
+  background: rgba(13, 148, 136, 0.22);
+  border-color: rgba(45, 212, 191, 0.42);
+  color: #99f6e4;
+}
+
+.accurate-indicator--offline {
+  background: rgba(185, 28, 28, 0.22);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+}
+
+.accurate-indicator--checking {
+  background: rgba(120, 113, 108, 0.28);
+  border-color: rgba(214, 211, 209, 0.4);
+  color: #e7e5e4;
+}
+
 .sidebar-header {
   height: 64px;
   padding: 0 16px;

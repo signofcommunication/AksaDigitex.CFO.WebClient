@@ -90,7 +90,14 @@ export const routes: RouteRecordRaw[] = [
           label: 'Settings',
           icon: 'person',
           expanded: true,
-          children: [{ key: 'users', label: 'Users', icon: 'manage_accounts' }],
+          children: [
+            {
+              key: 'users',
+              label: 'Users',
+              icon: 'manage_accounts',
+              to: '/settings/users',
+            },
+          ],
         },
       ] as SidebarMenuItem[],
     },
@@ -129,6 +136,19 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: 'Sales Order',
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Sales Order' }],
+        },
+      },
+      {
+        path: 'settings/users',
+        name: 'settings-users',
+        component: () => import('@/features/settings/pages/UsersPage.vue'),
+        meta: {
+          title: 'Users',
+          breadcrumb: [
+            { label: 'Home', to: '/' },
+            { label: 'Settings', to: '/settings' },
+            { label: 'Users' },
+          ],
         },
       },
       // Tambah route features lain di sini
