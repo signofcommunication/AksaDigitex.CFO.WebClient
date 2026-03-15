@@ -127,7 +127,7 @@
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
             <div class="text-primary text-h6 text-weight-bold q-mb-xs">Rp 4,2M</div>
-            <div class="text-grey-6 text-caption">Total Outstanding</div>
+            <div class="text-grey-6 text-caption">Total Piutang</div>
           </q-card-section>
         </q-card>
       </div>
@@ -135,7 +135,7 @@
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
             <div class="text-positive text-h6 text-weight-bold q-mb-xs">Rp 1,8M</div>
-            <div class="text-grey-6 text-caption">0–30 Hari</div>
+            <div class="text-grey-6 text-caption">Total Hutang</div>
           </q-card-section>
         </q-card>
       </div>
@@ -182,7 +182,7 @@
               </template>
             </q-input>
           </q-card-section>
-          
+
           <q-table
             :rows="filteredTableData"
             :columns="tableColumns"
@@ -219,11 +219,11 @@
                 {{ formatCurrency(props.row['>90']) }}
               </q-td>
             </template>
-            
+
             <!-- Aging Visual Slot -->
             <template v-slot:body-cell-aging="props">
               <q-td :props="props" class="text-center">
-                <div class="row no-wrap items-center q-gutter-x-xs" style="width: 100px;">
+                <div class="row no-wrap items-center q-gutter-x-xs" style="width: 100px">
                   <div
                     v-if="props.row['0-30'] > 0"
                     class="bg-positive"
@@ -250,16 +250,16 @@
 
             <!-- Status Slot -->
             <template v-slot:body-cell-status="props">
-               <q-td :props="props" class="text-center">
-                  <q-badge
-                    outline
-                    :color="getStatusColor(props.row.status)"
-                    class="q-px-sm q-py-xs bg-white text-weight-bold"
-                    style="border-radius: 6px; letter-spacing: 0.5px"
-                  >
-                     {{ props.row.status }}
-                  </q-badge>
-               </q-td>
+              <q-td :props="props" class="text-center">
+                <q-badge
+                  outline
+                  :color="getStatusColor(props.row.status)"
+                  class="q-px-sm q-py-xs bg-white text-weight-bold"
+                  style="border-radius: 6px; letter-spacing: 0.5px"
+                >
+                  {{ props.row.status }}
+                </q-badge>
+              </q-td>
             </template>
           </q-table>
         </q-card>
@@ -269,7 +269,7 @@
       <div class="col-12 col-md-4">
         <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
           <q-card-section class="q-pa-md border-bottom">
-             <div
+            <div
               class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
               style="letter-spacing: 1px"
             >
@@ -277,31 +277,35 @@
             </div>
           </q-card-section>
           <q-card-section class="q-pa-lg flex flex-center">
-             <div class="q-my-md relative">
-                <VueApexCharts
-                  type="donut"
-                  width="280"
-                  height="260"
-                  :options="donutOptions"
-                  :series="donutSeries"
-                />
-             </div>
+            <div class="q-my-md relative">
+              <VueApexCharts
+                type="donut"
+                width="280"
+                height="260"
+                :options="donutOptions"
+                :series="donutSeries"
+              />
+            </div>
           </q-card-section>
           <q-card-section class="q-px-xl q-pb-xl">
-             <div class="row justify-center q-gutter-x-md text-caption text-grey-8">
-               <div class="col-5 flex items-center q-mb-sm">
-                 <div class="color-dot bg-positive q-mr-sm"></div> 0-30 Hari
-               </div>
-               <div class="col-5 flex items-center q-mb-sm">
-                 <div class="color-dot bg-warning q-mr-sm"></div> 31-60 Hari
-               </div>
-               <div class="col-5 flex items-center">
-                 <div class="color-dot bg-orange q-mr-sm"></div> 61-90 Hari
-               </div>
-               <div class="col-5 flex items-center">
-                 <div class="color-dot bg-negative q-mr-sm"></div> >90 Hari
-               </div>
-             </div>
+            <div class="row justify-center q-gutter-x-md text-caption text-grey-8">
+              <div class="col-5 flex items-center q-mb-sm">
+                <div class="color-dot bg-positive q-mr-sm"></div>
+                0-30 Hari
+              </div>
+              <div class="col-5 flex items-center q-mb-sm">
+                <div class="color-dot bg-warning q-mr-sm"></div>
+                31-60 Hari
+              </div>
+              <div class="col-5 flex items-center">
+                <div class="color-dot bg-orange q-mr-sm"></div>
+                61-90 Hari
+              </div>
+              <div class="col-5 flex items-center">
+                <div class="color-dot bg-negative q-mr-sm"></div>
+                >90 Hari
+              </div>
+            </div>
           </q-card-section>
         </q-card>
       </div>
@@ -459,8 +463,8 @@ const handlePrintPdfBtn = () => {
 const formatCurrency = (val: number | string) => {
   if (val === '-' || val === 0) return '-';
   if (typeof val === 'number') {
-     if (val >= 1000) return `Rp ${(val / 1000).toLocaleString('id-ID')}rb`;
-     return `Rp ${val.toLocaleString('id-ID')}jt`;
+    if (val >= 1000) return `Rp ${(val / 1000).toLocaleString('id-ID')}rb`;
+    return `Rp ${val.toLocaleString('id-ID')}jt`;
   }
   return val;
 };
@@ -474,19 +478,29 @@ const getStatusColor = (status: string) => {
 
 // -- Dummy Data for Table --
 const arClients = [
-  { id: 1, name: 'PT Mega Konstruksi', outstanding: 820, '0-30': 400, '31-60': 250, '61-90': 120, '>90': 50, status: 'Overdue' },
-  { id: 2, name: 'CV Bintang Timur', outstanding: 650, '0-30': 350, '31-60': 100, '61-90': 80, '>90': 120, status: 'Overdue' },
-  { id: 3, name: 'PT Sinar Mas', outstanding: 560, '0-30': 300, '31-60': 150, '61-90': 70, '>90': 40, status: 'Perhatian' },
-  { id: 4, name: 'Koperasi Mandiri', outstanding: 480, '0-30': 250, '31-60': 100, '61-90': 30, '>90': 100, status: 'Normal' },
-  { id: 5, name: 'PT Graha Raya', outstanding: 280, '0-30': 120, '31-60': 90, '61-90': 50, '>90': 20, status: 'Normal' },
-  { id: 6, name: 'UD Karya Jaya', outstanding: 210, '0-30': 150, '31-60': 40, '61-90': 15, '>90': 5, status: 'Normal' },
-  { id: 7, name: 'PT Alam Indah', outstanding: 190, '0-30': 100, '31-60': 60, '61-90': 20, '>90': 10, status: 'Normal' },
-  { id: 8, name: 'CV Maju Bersama', outstanding: 140, '0-30': 90, '31-60': 30, '61-90': 15, '>90': 5, status: 'Normal' },
+  {
+    id: 1,
+    name: 'PT Aksa Digitex',
+    outstanding: 35379759224,
+    '0-30': 0,
+    '31-60': 0,
+    '61-90': 0,
+    '>90': 0,
+    status: 'Normal',
+  },
 ];
 
 const apVendors = [
-  { id: 1, name: 'PT Supplier Baja', outstanding: 500, '0-30': 250, '31-60': 150, '61-90': 50, '>90': 50, status: 'Overdue' },
-  { id: 2, name: 'CV Makmur Sentosa', outstanding: 300, '0-30': 200, '31-60': 50, '61-90': 20, '>90': 30, status: 'Perhatian' },
+  {
+    id: 1,
+    name: 'PT Aksa Digitex',
+    outstanding: 13378852768,
+    '0-30': 0,
+    '31-60': 0,
+    '61-90': 0,
+    '>90': 0,
+    status: 'Normal',
+  },
 ];
 
 const filteredTableData = computed(() => {
@@ -500,7 +514,13 @@ const filteredTableData = computed(() => {
 
 const tableColumns = [
   { name: 'customer', label: 'CUSTOMER', field: 'name', align: 'left' as const, sortable: true },
-  { name: 'outstanding', label: 'OUTSTANDING', field: 'outstanding', align: 'left' as const, sortable: true },
+  {
+    name: 'outstanding',
+    label: 'OUTSTANDING',
+    field: 'outstanding',
+    align: 'left' as const,
+    sortable: true,
+  },
   { name: '0-30', label: '0-30 HR', field: '0-30', align: 'left' as const, sortable: true },
   { name: '31-60', label: '31-60 HR', field: '31-60', align: 'left' as const, sortable: true },
   { name: '61-90', label: '61-90 HR', field: '61-90', align: 'left' as const, sortable: true },
@@ -516,13 +536,13 @@ const donutOptions = computed(() => ({
   labels: ['0-30 Hari', '31-60 Hari', '61-90 Hari', '>90 Hari'],
   colors: ['#21ba45', '#f2c037', '#ff9800', '#c10015'],
   plotOptions: {
-    pie: { 
-      donut: { 
+    pie: {
+      donut: {
         size: '65%',
         labels: {
           show: false,
-        }
-      } 
+        },
+      },
     },
   },
   dataLabels: { enabled: false },
@@ -532,7 +552,6 @@ const donutOptions = computed(() => ({
     theme: 'light',
   },
 }));
-
 </script>
 
 <style scoped>

@@ -217,13 +217,13 @@
               </div>
               <div class="row justify-between text-body2 text-dark q-mb-sm">
                 <span>Penjualan Bersih</span
-                ><span class="text-weight-medium">Rp 8.900.000.000</span>
+                ><span class="text-weight-medium">Rp 29.973.099.497</span>
               </div>
               <div
                 class="row justify-between q-pa-sm bg-grey-2 rounded-borders q-mb-xl items-center"
               >
                 <span class="text-dark text-weight-bold text-body2">Total Pendapatan</span
-                ><span class="text-dark text-weight-bold text-body2">Rp 9.350.000.000</span>
+                ><span class="text-dark text-weight-bold text-body2">Rp 29.973.099.497</span>
               </div>
               <div
                 class="text-caption text-grey-7 text-weight-bold q-mb-md text-uppercase"
@@ -232,13 +232,13 @@
                 Beban Operasional
               </div>
               <div class="row justify-between text-body2 text-dark q-mb-sm">
-                <span>HPP</span><span class="text-negative">(Rp 6.200.000.000)</span>
+                <span>HPP</span><span class="text-negative">(Rp 13.378.852.768)</span>
               </div>
               <div
                 class="row justify-between q-pa-sm bg-grey-2 rounded-borders q-mb-xl items-center"
               >
                 <span class="text-dark text-weight-bold text-body2">Total Beban</span
-                ><span class="text-negative text-weight-bold text-body2">(Rp 7.050.000.000)</span>
+                ><span class="text-negative text-weight-bold text-body2">(Rp 13.378.852.768)</span>
               </div>
               <div
                 class="row justify-between q-pa-md bg-teal-1 rounded-borders items-center"
@@ -251,7 +251,7 @@
                     >Laba Bersih</span
                   >
                 </div>
-                <span class="text-positive text-weight-bold text-subtitle1">Rp 2.300.000.000</span>
+                <span class="text-positive text-weight-bold text-subtitle1">Rp 29.973.999.497</span>
               </div>
             </q-card-section>
           </q-card>
