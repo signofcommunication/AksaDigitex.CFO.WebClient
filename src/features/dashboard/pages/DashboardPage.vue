@@ -4,70 +4,113 @@
       <header
         class="rounded-xl border border-[#e8eef5] bg-white px-4 py-4 shadow-sm md:px-6 md:py-5"
       >
-        <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 class="text-3xl font-bold text-[#1a202c]">Executive Dashboard</h1>
-            <p class="mt-1 text-sm text-[#718096]">Financial Overview • Last 12 months</p>
+            <h1 class="text-3xl font-bold text-[#1a202c]">Financial Overview</h1>
+            <p class="mt-1 text-sm text-[#718096]">
+              Semua Entitas - Periode Januari - Desember 2024 - Data real-time
+            </p>
           </div>
-
-          <div class="flex items-center gap-2">
-            <q-btn
-              flat
-              round
-              dense
-              icon="refresh"
-              class="border border-[#e8eef5] bg-white text-[#718096]"
-              :class="{ 'animate-spin': isRefreshing }"
-              @click="handleRefresh"
-            />
-            <q-btn
-              flat
-              round
-              dense
-              icon="download"
-              class="border border-[#e8eef5] bg-white text-[#718096]"
-            />
-            <q-btn
-              flat
-              round
-              dense
-              icon="settings"
-              class="border border-[#e8eef5] bg-white text-[#718096]"
-            />
-          </div>
+          <q-btn
+            flat
+            round
+            dense
+            icon="refresh"
+            class="border border-[#e8eef5] bg-white text-[#718096]"
+            :class="{ 'animate-spin': isRefreshing || financialOverview.isLoading.value }"
+            :disable="financialOverview.isLoading.value"
+            @click="handleRefresh"
+          />
         </div>
 
+        <!-- Financial Overview Cards (Quasar default / light) -->
         <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <!-- 1. Total Piutang -->
           <article
-            v-for="item in kpiCards"
-            :key="item.label"
             class="rounded-xl border border-[#e8eef5] bg-white p-4 shadow-sm transition hover:shadow-md"
           >
-            <div class="mb-4 flex items-start justify-between">
-              <div>
-                <p class="text-sm font-medium text-[#718096]">{{ item.label }}</p>
-                <h2 class="mt-1 text-4xl font-bold text-[#1a202c]">{{ item.value }}</h2>
+            <div class="mb-3 flex items-start justify-between">
+              <p class="text-sm font-medium text-[#718096]">Total Piutang</p>
+              <q-icon name="shield" size="24px" class="text-indigo-600" />
+            </div>
+            <h2 class="text-2xl font-bold text-[#1a202c] md:text-3xl" :class="financialOverview.isLoading.value ? 'animate-pulse' : ''">
+              {{ financialOverview.formatted.value.totalPiutang }}
+            </h2>
+            <div class="mt-4">
+              <div class="flex justify-between text-xs text-[#718096]">
+                <span>Outstanding</span>
+                <span>{{ financialOverview.formatted.value.totalPiutang }}</span>
               </div>
-              <div class="rounded-lg p-2.5 text-white" :class="item.badgeClass">
-                <q-icon :name="item.icon" size="20px" />
+              <div class="mt-1 h-2 overflow-hidden rounded-full bg-[#e8eef5]">
+                <div
+                  class="h-full rounded-full bg-indigo-500"
+                  :style="{ width: `${outstandingProgress}%` }"
+                />
               </div>
             </div>
+          </article>
 
-            <div class="flex items-center gap-2 text-sm">
-              <q-icon
-                :name="item.trend >= 0 ? 'trending_up' : 'trending_down'"
-                :class="item.trend >= 0 ? 'text-[#00aa44]' : 'text-[#ff4444]'"
-              />
-              <span
-                class="font-semibold"
-                :class="item.trend >= 0 ? 'text-[#00aa44]' : 'text-[#ff4444]'"
-              >
-                {{ Math.abs(item.trend) }}%
-              </span>
-              <span class="text-[#718096]">vs last month</span>
+          <!-- 2. Total Utang -->
+          <article
+            class="rounded-xl border border-[#e8eef5] bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <div class="mb-3 flex items-start justify-between">
+              <p class="text-sm font-medium text-[#718096]">Total Utang</p>
+              <q-icon name="account_balance" size="24px" class="text-amber-700" />
+            </div>
+            <h2 class="text-2xl font-bold text-[#1a202c] md:text-3xl" :class="financialOverview.isLoading.value ? 'animate-pulse' : ''">
+              {{ financialOverview.formatted.value.totalHutang }}
+            </h2>
+            <p class="mt-4 text-sm text-[#718096]">
+              3 supplier menunggu pembayaran
+            </p>
+          </article>
+
+          <!-- 3. Total Pendapatan -->
+          <article
+            class="rounded-xl border border-[#e8eef5] bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <div class="mb-3 flex items-start justify-between">
+              <p class="text-sm font-medium text-[#718096]">Total Pendapatan</p>
+              <q-icon name="attach_money" size="24px" class="text-green-700" />
+            </div>
+            <h2 class="text-2xl font-bold text-[#1a202c] md:text-3xl" :class="financialOverview.isLoading.value ? 'animate-pulse' : ''">
+              {{ financialOverview.formatted.value.totalPendapatan }}
+            </h2>
+            <div class="mt-4">
+              <div class="flex justify-between text-xs text-[#718096]">
+                <span>Target Annual</span>
+                <span>94%</span>
+              </div>
+              <div class="mt-1 h-2 overflow-hidden rounded-full bg-[#e8eef5]">
+                <div
+                  class="h-full w-[94%] rounded-full bg-green-500"
+                />
+              </div>
+            </div>
+          </article>
+
+          <!-- 4. Laba Bersih -->
+          <article
+            class="rounded-xl border border-[#e8eef5] bg-white p-4 shadow-sm transition hover:shadow-md"
+          >
+            <div class="mb-3 flex items-start justify-between">
+              <p class="text-sm font-medium text-[#718096]">Laba Bersih</p>
+              <q-icon name="show_chart" size="24px" class="text-green-700" />
+            </div>
+            <h2 class="text-2xl font-bold text-[#1a202c] md:text-3xl" :class="financialOverview.isLoading.value ? 'animate-pulse' : ''">
+              {{ financialOverview.formatted.value.labaBersih }}
+            </h2>
+            <div class="mt-4 flex items-center justify-between text-sm text-[#718096]">
+              <span>Net Margin</span>
+              <span class="font-medium text-[#1a202c]">{{ netMarginPercent }}%</span>
             </div>
           </article>
         </div>
+
+        <p v-if="financialOverview.error.value" class="mt-3 text-sm text-red-600">
+          {{ financialOverview.error.value.message }}
+        </p>
       </header>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -301,7 +344,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { useFinancialOverview } from '../composables/useFinancialOverview';
 
 interface RevenueRow {
   month: string;
@@ -322,7 +366,24 @@ interface DistributionRow {
   color: string;
 }
 
+const financialOverview = useFinancialOverview();
 const isRefreshing = ref(false);
+
+/** Progress 0–100 for piutang outstanding (placeholder: based on total) */
+const outstandingProgress = computed(() => {
+  const total = financialOverview.totalPiutang.value;
+  if (total <= 0) return 0;
+  const max = Math.max(total, 5_000_000);
+  return Math.min(100, Math.round((total / max) * 100));
+});
+
+/** Net margin %: laba bersih / pendapatan * 100 */
+const netMarginPercent = computed(() => {
+  const laba = financialOverview.labaBersih.value;
+  const pendapatan = financialOverview.totalPendapatan.value;
+  if (pendapatan <= 0) return '0';
+  return (laba / pendapatan * 100).toFixed(1);
+});
 
 const revenueData: RevenueRow[] = [
   { month: 'Jan', revenue: 45000, expense: 28000, profit: 17000 },
@@ -375,37 +436,6 @@ const customers = [
   { name: 'PT Sinar Maju', amount: 540000, percentage: 15 },
   { name: 'Koperasi Merdeka', amount: 480000, percentage: 14 },
   { name: 'PT Graha Raya', amount: 420000, percentage: 12 },
-];
-
-const kpiCards = [
-  {
-    label: 'Total Revenue',
-    value: 'Rp 4.2M',
-    trend: 8.5,
-    icon: 'north_east',
-    badgeClass: 'bg-[#0066ff]',
-  },
-  {
-    label: 'Total Expense',
-    value: 'Rp 1.8M',
-    trend: -1.5,
-    icon: 'south_west',
-    badgeClass: 'bg-[#ff9900]',
-  },
-  {
-    label: 'Net Profit',
-    value: 'Rp 8.9M',
-    trend: 12.7,
-    icon: 'trending_up',
-    badgeClass: 'bg-[#00aa44]',
-  },
-  {
-    label: 'Growth Rate',
-    value: 'Rp 2.3M',
-    trend: 15.2,
-    icon: 'bar_chart',
-    badgeClass: 'bg-[#9966ff]',
-  },
 ];
 
 const maxRevenue = Math.max(...revenueData.map((item) => item.revenue));
@@ -521,10 +551,13 @@ function onProjectionLeave() {
   hoveredProjection.value = null;
 }
 
-const handleRefresh = () => {
+const handleRefresh = async () => {
   isRefreshing.value = true;
-  setTimeout(() => {
-    isRefreshing.value = false;
-  }, 900);
+  await financialOverview.refresh();
+  isRefreshing.value = false;
 };
+
+onMounted(() => {
+  void financialOverview.refresh();
+});
 </script>
