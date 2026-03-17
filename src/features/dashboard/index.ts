@@ -12,9 +12,18 @@ export { default as DashboardMetrics } from './components/DashboardMetrics.vue';
 
 // Composables
 export { useDashboard } from './composables/useDashboard';
+export {
+  useFinancialOverview,
+  formatCompactIdr,
+  formatIdr,
+} from './composables/useFinancialOverview';
 
 // Services
 export { dashboardService } from './services/dashboardService';
+export {
+  fetchFinancialOverview,
+  type FinancialOverviewResult,
+} from './services/financialOverviewService';
 
 // Stores
 export { useDashboardStore } from './stores/dashboardStore';
