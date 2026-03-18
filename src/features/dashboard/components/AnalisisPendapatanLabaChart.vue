@@ -99,11 +99,11 @@
           <div class="tooltip-title">{{ months[hover.index] }}</div>
           <div class="tooltip-row">
             <span class="tooltip-icon tooltip-icon--blue"></span>
-            <span>Pendapatan: Rp {{ formatCompactValue(revenue[hover.index]) }}</span>
+            <span>Pendapatan: Rp {{ formatCompactValue(valueAt(revenue, hover.index)) }}</span>
           </div>
           <div class="tooltip-row">
             <span class="tooltip-icon tooltip-icon--teal"></span>
-            <span>Laba Bersih: Rp {{ formatCompactValue(netProfit[hover.index]) }}</span>
+            <span>Laba Bersih: Rp {{ formatCompactValue(valueAt(netProfit, hover.index)) }}</span>
           </div>
         </div>
       </div>
@@ -226,6 +226,10 @@ function formatAxisLabel(jt: number): string {
   }
   const s = (Math.round(abs * 10) / 10).toLocaleString('id-ID').replace(/,/g, '.');
   return abs === 0 ? '0' : `${s} jt`;
+}
+
+function valueAt(arr: number[], idx: number): number {
+  return arr[idx] ?? 0;
 }
 
 function toPoint(idx: number, val: number, total: number): { x: number; y: number } {

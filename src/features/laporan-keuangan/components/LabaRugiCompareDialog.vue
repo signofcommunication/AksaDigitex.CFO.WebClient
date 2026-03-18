@@ -198,7 +198,9 @@ const compareRows = computed((): CompareRow[] => {
   const companies = props.companiesData;
   if (companies.length === 0) return list;
 
-  const firstData = companies[0].data ?? [];
+  const firstCompany = companies.at(0);
+  if (!firstCompany) return list;
+  const firstData = firstCompany.data ?? [];
   const parents = getParentRows(firstData);
 
   for (const parentNo of PARENT_ORDER) {
@@ -305,7 +307,7 @@ function getCellAmount(props: { col: { name: string }; row: CompareRow }): numbe
   const name = props.col.name;
   if (name === 'akun') return 0;
   const idx = parseInt(name.replace('company_', ''), 10);
-  const v = props.row.amounts[idx];
+  const v = props.row.amounts[idx] ?? 0;
   return Number.isFinite(v) ? v : 0;
 }
 

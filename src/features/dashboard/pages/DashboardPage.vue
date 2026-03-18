@@ -304,13 +304,6 @@ import { useFinancialOverview } from '../composables/useFinancialOverview';
 import { getCompanies } from 'src/shared/services/backendApiContract';
 import AnalisisPendapatanLabaChart from '../components/AnalisisPendapatanLabaChart.vue';
 
-interface RevenueRow {
-  month: string;
-  revenue: number;
-  expense: number;
-  profit: number;
-}
-
 interface ProjectionRow {
   month: string;
   value: number | null;
@@ -371,21 +364,6 @@ const netMarginPercent = computed(() => {
   return (laba / pendapatan * 100).toFixed(1);
 });
 
-const revenueData: RevenueRow[] = [
-  { month: 'Jan', revenue: 45000, expense: 28000, profit: 17000 },
-  { month: 'Feb', revenue: 52000, expense: 31000, profit: 21000 },
-  { month: 'Mar', revenue: 48000, expense: 29000, profit: 19000 },
-  { month: 'Apr', revenue: 61000, expense: 35000, profit: 26000 },
-  { month: 'May', revenue: 55000, expense: 32000, profit: 23000 },
-  { month: 'Jun', revenue: 67000, expense: 38000, profit: 29000 },
-  { month: 'Jul', revenue: 72000, expense: 40000, profit: 32000 },
-  { month: 'Aug', revenue: 78000, expense: 43000, profit: 35000 },
-  { month: 'Sep', revenue: 85000, expense: 46000, profit: 39000 },
-  { month: 'Oct', revenue: 92000, expense: 50000, profit: 42000 },
-  { month: 'Nov', revenue: 98000, expense: 52000, profit: 46000 },
-  { month: 'Dec', revenue: 105000, expense: 55000, profit: 50000 },
-];
-
 const projectionData: ProjectionRow[] = [
   { month: 'Aug', value: 78000, projection: 78000 },
   { month: 'Sep', value: 85000, projection: 85000 },
@@ -403,12 +381,8 @@ const distributionData: DistributionRow[] = [
   { name: '90+ days', value: 9, color: '#ff4444' },
 ];
 
-const revenueChartRef = ref<HTMLElement | null>(null);
 const donutChartRef = ref<HTMLElement | null>(null);
 const projectionChartRef = ref<HTMLElement | null>(null);
-
-const hoveredRevenue = ref<RevenueRow | null>(null);
-const revenueTooltip = ref({ x: 0, y: 0 });
 
 const hoveredDonut = ref<{ name: string; value: number } | null>(null);
 const donutTooltip = ref({ x: 0, y: 0 });
@@ -424,8 +398,6 @@ const customers = [
   { name: 'PT Graha Raya', amount: 420000, percentage: 12 },
 ];
 
-const maxRevenue = Math.max(...revenueData.map((item) => item.revenue));
-const maxProfit = Math.max(...revenueData.map((item) => item.profit));
 const maxProjection = Math.max(...projectionData.map((item) => item.projection));
 
 // Analisis Pendapatan & Laba: ikut filter entitas (financialOverview). Nilai dari API dalam Rupiah → chart pakai satuan ribu (72000 = 72 jt).
@@ -442,20 +414,6 @@ const analysisNetProfit = computed(() => {
   if (laba <= 0) return [0, 0, 0, 0, 0, 0];
   const inThousands = laba / 1000;
   return [0.7, 0.75, 0.8, 0.85, 0.9, 1].map((p) => Math.round(p * inThousands));
-});
-
-const barHeight = (value: number) => {
-  return Math.max(10, (value / maxRevenue) * 210);
-};
-
-const profitLinePoints = computed(() => {
-  return revenueData
-    .map((row, index) => {
-      const x = 40 + (index * 920) / (revenueData.length - 1);
-      const y = 220 - (row.profit / maxProfit) * 180;
-      return `${x},${y}`;
-    })
-    .join(' ');
 });
 
 const projectionActualPoints = computed(() => {
@@ -498,24 +456,6 @@ const donutSegments = computed(() => {
     return segment;
   });
 });
-
-function onRevenueEnter(row: RevenueRow, event: MouseEvent) {
-  hoveredRevenue.value = row;
-  onRevenueMove(event);
-}
-
-function onRevenueMove(event: MouseEvent) {
-  if (!revenueChartRef.value) return;
-  const rect = revenueChartRef.value.getBoundingClientRect();
-  revenueTooltip.value = {
-    x: event.clientX - rect.left + 12,
-    y: event.clientY - rect.top - 12,
-  };
-}
-
-function onRevenueLeave() {
-  hoveredRevenue.value = null;
-}
 
 function onDonutEnter(name: string, value: number, event: MouseEvent) {
   hoveredDonut.value = { name, value };
