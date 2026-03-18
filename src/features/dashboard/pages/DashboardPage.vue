@@ -133,77 +133,13 @@
       </header>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm xl:col-span-2">
-          <h3 class="text-2xl font-bold text-[#1a202c]">Revenue & Expense Analysis</h3>
-          <p class="mt-1 text-sm text-[#718096]">Monthly performance comparison</p>
-
-          <div class="mt-6 rounded-lg border border-dashed border-[#e8eef5] p-4">
-            <div ref="revenueChartRef" class="relative h-[280px]">
-              <svg
-                class="pointer-events-none absolute inset-0 h-full w-full"
-                viewBox="0 0 1000 280"
-                preserveAspectRatio="none"
-              >
-                <polyline
-                  :points="profitLinePoints"
-                  fill="none"
-                  stroke="#00aa44"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-
-              <div class="flex h-full items-end justify-between gap-2 pt-4">
-                <div
-                  v-for="row in revenueData"
-                  :key="row.month"
-                  class="flex min-w-[48px] flex-1 cursor-pointer flex-col items-center gap-2"
-                  @mouseenter="onRevenueEnter(row, $event)"
-                  @mousemove="onRevenueMove($event)"
-                  @mouseleave="onRevenueLeave"
-                >
-                  <div class="flex h-[220px] items-end gap-1.5">
-                    <div
-                      class="w-3 rounded-t-md bg-[#0066ff] md:w-4"
-                      :style="{ height: `${barHeight(row.revenue)}px` }"
-                    ></div>
-                    <div
-                      class="w-3 rounded-t-md bg-[#ff9900] md:w-4"
-                      :style="{ height: `${barHeight(row.expense)}px` }"
-                    ></div>
-                  </div>
-                  <span class="text-xs text-[#718096]">{{ row.month }}</span>
-                </div>
-              </div>
-
-              <div
-                v-if="hoveredRevenue"
-                class="pointer-events-none absolute z-20 min-w-[210px] rounded-xl border border-[#d7e0ec] bg-white px-4 py-3 text-base shadow-lg"
-                :style="{
-                  left: `${revenueTooltip.x}px`,
-                  top: `${revenueTooltip.y}px`,
-                }"
-              >
-                <p class="mb-2 text-black">{{ hoveredRevenue.month }}</p>
-                <p class="text-[#0066ff]">revenue : {{ hoveredRevenue.revenue }}</p>
-                <p class="text-[#ff9900]">expense : {{ hoveredRevenue.expense }}</p>
-                <p class="text-[#00aa44]">profit : {{ hoveredRevenue.profit }}</p>
-              </div>
-            </div>
-
-            <div class="mt-4 flex items-center justify-center gap-4 text-sm font-medium">
-              <span class="flex items-center gap-1.5 text-[#0066ff]"
-                ><i class="h-2.5 w-2.5 bg-[#0066ff]"></i>revenue</span
-              >
-              <span class="flex items-center gap-1.5 text-[#ff9900]"
-                ><i class="h-2.5 w-2.5 bg-[#ff9900]"></i>expense</span
-              >
-              <span class="flex items-center gap-1.5 text-[#00aa44]"
-                ><i class="h-0.5 w-4 bg-[#00aa44]"></i>profit</span
-              >
-            </div>
-          </div>
+        <section class="xl:col-span-2">
+          <AnalisisPendapatanLabaChart
+            :months="analysisMonths"
+            :revenue="analysisRevenue"
+            :net-profit="analysisNetProfit"
+            period-label="6 bulan terakhir"
+          />
         </section>
 
         <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm">
@@ -366,6 +302,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useFinancialOverview } from '../composables/useFinancialOverview';
 import { getCompanies } from 'src/shared/services/backendApiContract';
+import AnalisisPendapatanLabaChart from '../components/AnalisisPendapatanLabaChart.vue';
 
 interface RevenueRow {
   month: string;
@@ -490,6 +427,22 @@ const customers = [
 const maxRevenue = Math.max(...revenueData.map((item) => item.revenue));
 const maxProfit = Math.max(...revenueData.map((item) => item.profit));
 const maxProjection = Math.max(...projectionData.map((item) => item.projection));
+
+// Analisis Pendapatan & Laba: ikut filter entitas (financialOverview). Nilai dari API dalam Rupiah → chart pakai satuan ribu (72000 = 72 jt).
+const ANALYSIS_MONTHS_6 = ['Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const analysisMonths = ANALYSIS_MONTHS_6;
+const analysisRevenue = computed(() => {
+  const pend = financialOverview.totalPendapatan.value;
+  if (pend <= 0) return [0, 0, 0, 0, 0, 0];
+  const inThousands = pend / 1000;
+  return [0.7, 0.75, 0.8, 0.85, 0.9, 1].map((p) => Math.round(p * inThousands));
+});
+const analysisNetProfit = computed(() => {
+  const laba = financialOverview.labaBersih.value;
+  if (laba <= 0) return [0, 0, 0, 0, 0, 0];
+  const inThousands = laba / 1000;
+  return [0.7, 0.75, 0.8, 0.85, 0.9, 1].map((p) => Math.round(p * inThousands));
+});
 
 const barHeight = (value: number) => {
   return Math.max(10, (value / maxRevenue) * 210);
