@@ -123,7 +123,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'piutang-utang',
         name: 'piutang-utang',
-        component: () => import('@/features/laporan-keuangan/pages/UtangPiutangPage.vue'),
+        component: () => import('@/features/utang-piutang/UtangPiutangPage.vue'),
         meta: {
           title: 'Piutang & Utang',
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Piutang & Utang' }],
@@ -132,7 +132,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'sales-order',
         name: 'sales-order',
-        component: () => import('@/features/laporan-keuangan/pages/SalesOrderPage.vue'),
+        component: () => import('@/features/sales-order/SalesOrderPage.vue'),
         meta: {
           title: 'Sales Order',
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Sales Order' }],

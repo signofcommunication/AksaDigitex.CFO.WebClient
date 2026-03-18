@@ -8,10 +8,28 @@
           <div>
             <h1 class="text-3xl font-bold text-[#1a202c]">Financial Overview</h1>
             <p class="mt-1 text-sm text-[#718096]">
-              Semua Entitas - Periode Januari - Desember 2024 - Data real-time
+              {{ selectedCompanies.length ? selectedCompanies.join(', ') + ' - ' : '' }}Periode Januari - Desember 2024 - Data real-time
             </p>
           </div>
-          <q-btn
+          <div class="flex flex-wrap items-center gap-3">
+            <q-select
+              v-model="selectedCompanies"
+              :options="companyOptions"
+              multiple
+              use-chips
+              option-label="label"
+              option-value="value"
+              emit-value
+              map-options
+              dense
+              outlined
+              label="Perusahaan"
+              class="min-w-[220px]"
+              :loading="companiesLoading"
+              :disable="companiesLoading || financialOverview.isLoading.value"
+              @update:model-value="onCompanyChange"
+            />
+            <q-btn
             flat
             round
             dense
@@ -21,6 +39,7 @@
             :disable="financialOverview.isLoading.value"
             @click="handleRefresh"
           />
+          </div>
         </div>
 
         <!-- Financial Overview Cards (Quasar default / light) -->
@@ -346,6 +365,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import { useFinancialOverview } from '../composables/useFinancialOverview';
+import { getCompanies } from 'src/shared/services/backendApiContract';
 
 interface RevenueRow {
   month: string;
@@ -368,6 +388,35 @@ interface DistributionRow {
 
 const financialOverview = useFinancialOverview();
 const isRefreshing = ref(false);
+
+const companies = ref<string[]>([]);
+const companiesLoading = ref(false);
+const selectedCompanies = ref<string[]>([]);
+
+const companyOptions = computed(() =>
+  companies.value.map((name) => ({ label: name, value: name }))
+);
+
+async function loadCompanies() {
+  companiesLoading.value = true;
+  try {
+    companies.value = await getCompanies();
+    if (companies.value.length > 0 && selectedCompanies.value.length === 0) {
+      const first = companies.value[0];
+      if (first !== undefined) selectedCompanies.value = [first];
+    }
+  } finally {
+    companiesLoading.value = false;
+  }
+}
+
+function onCompanyChange(value: string[] | null) {
+  const list = value ?? [];
+  selectedCompanies.value = list;
+  if (list.length > 0) {
+    void financialOverview.refresh(list);
+  }
+}
 
 /** Progress 0–100 for piutang outstanding (placeholder: based on total) */
 const outstandingProgress = computed(() => {
@@ -553,11 +602,15 @@ function onProjectionLeave() {
 
 const handleRefresh = async () => {
   isRefreshing.value = true;
-  await financialOverview.refresh();
+  const list = selectedCompanies.value;
+  await financialOverview.refresh(list.length > 0 ? list : undefined);
   isRefreshing.value = false;
 };
 
-onMounted(() => {
-  void financialOverview.refresh();
+onMounted(async () => {
+  await loadCompanies();
+  if (selectedCompanies.value.length > 0) {
+    void financialOverview.refresh(selectedCompanies.value);
+  }
 });
 </script>

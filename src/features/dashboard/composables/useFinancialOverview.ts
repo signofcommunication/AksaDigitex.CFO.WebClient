@@ -60,11 +60,11 @@ export function useFinancialOverview() {
     labaBersih: formatCompactIdr(labaBersih.value),
   }));
 
-  async function refresh() {
+  async function refresh(company?: string | string[]) {
     isLoading.value = true;
     error.value = null;
     try {
-      data.value = await fetchFinancialOverview();
+      data.value = await fetchFinancialOverview(company);
     } catch (e) {
       error.value = e instanceof Error ? e : new Error('Gagal memuat data');
     } finally {

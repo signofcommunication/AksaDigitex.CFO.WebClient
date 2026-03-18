@@ -96,13 +96,19 @@
           >
           <q-select
             v-model="entitas"
-            :options="['Semua Entitas', 'PT Aksa Digitex']"
+            :options="entitasOptions"
             dense
             outlined
             color="primary"
             class="filter-select"
             hide-dropdown-icon
             bg-color="white"
+            :loading="companiesLoading"
+            multiple
+            use-chips
+            emit-value
+            map-options
+            :label="activeTab === 'laba-rugi' ? 'Entitas (bisa pilih 2+ untuk banding)' : 'Entitas'"
           >
             <template v-slot:append
               ><q-icon name="expand_more" color="grey-7" size="xs"
@@ -110,7 +116,24 @@
           </q-select>
         </div>
         <div class="col-auto">
+          <!-- Tab Neraca: satu tanggal (as of). Tab lain: range. -->
           <q-btn
+            v-if="activeTab === 'neraca'"
+            outline
+            color="grey-5"
+            icon="calendar_today"
+            :label="neracaDateButtonLabel"
+            class="text-dark bg-white border-radius-6"
+            size="sm"
+            no-caps
+            style="height: 36px"
+          >
+            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+              <SingleDatePicker v-model="neracaAsOfDate" />
+            </q-popup-proxy>
+          </q-btn>
+          <q-btn
+            v-else
             outline
             color="grey-5"
             icon="calendar_today"
@@ -135,6 +158,9 @@
             size="sm"
             no-caps
             style="height: 36px"
+            :loading="(activeTab === 'laba-rugi' && labaRugiLoading) || (activeTab === 'neraca' && neracaLoading)"
+            :disable="(activeTab === 'laba-rugi' && labaRugiLoading) || (activeTab === 'neraca' && neracaLoading)"
+            @click="applyFilters"
           />
         </div>
       </q-card-section>
@@ -144,7 +170,9 @@
     <q-card v-if="activeTab === 'neraca'" class="bg-white shadow-1 border-radius-8" flat bordered>
       <q-card-section class="q-pa-md border-bottom">
         <div class="text-subtitle1 text-dark text-weight-bold">Neraca — Balance Sheet</div>
-        <div class="text-caption text-grey-7">Per 31 Desember 2024 - Semua Entitas</div>
+        <div class="text-caption text-grey-7">
+          {{ neracaHeaderText }}
+        </div>
       </q-card-section>
       <q-card-section class="q-pa-lg">
         <div class="row q-col-gutter-xl">
@@ -163,14 +191,18 @@
               Aset Lancar
             </div>
             <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Kas & Setara Kas</span><span class="text-weight-medium">Rp 1.240.000.000</span>
+              <span>Kas & Setara Kas</span
+              ><span class="text-weight-medium">{{ formatIdrNumber(neracaKasDanSetaraKas) }}</span>
             </div>
             <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Piutang Usaha</span><span class="text-weight-medium">Rp 4.200.000.000</span>
+              <span>Piutang Usaha</span
+              ><span class="text-weight-medium">{{ formatIdrNumber(neracaPiutangUsaha) }}</span>
             </div>
             <div class="row justify-between q-pa-sm bg-blue-1 rounded-borders q-mb-xl q-mt-md">
               <span class="text-primary text-weight-bold text-body2">Total Aset Lancar</span
-              ><span class="text-primary text-weight-bold text-body2">Rp 8.190.000.000</span>
+              ><span class="text-primary text-weight-bold text-body2">{{
+                formatIdrNumber(neracaTotalAsetLancar)
+              }}</span>
             </div>
           </div>
           <div class="col-12 col-md-6">
@@ -188,11 +220,14 @@
               Liabilitas Jangka Pendek
             </div>
             <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Utang Usaha</span><span class="text-weight-medium">Rp 1.800.000.000</span>
+              <span>Utang Usaha</span
+              ><span class="text-weight-medium">{{ formatIdrNumber(neracaUtangUsaha) }}</span>
             </div>
             <div class="row justify-between q-pa-sm bg-orange-1 rounded-borders q-mb-xl q-mt-md">
               <span class="text-orange-9 text-weight-bold text-body2">Total Liab. Pendek</span
-              ><span class="text-orange-9 text-weight-bold text-body2">Rp 2.530.000.000</span>
+              ><span class="text-orange-9 text-weight-bold text-body2">{{
+                formatIdrNumber(neracaTotalLiabPendek)
+              }}</span>
             </div>
           </div>
         </div>
@@ -201,57 +236,116 @@
 
     <!-- Content Laba Rugi -->
     <div v-else-if="activeTab === 'laba-rugi'">
-      <div class="row q-col-gutter-lg">
+      <p v-if="labaRugiError" class="text-negative q-mb-md">{{ labaRugiError }}</p>
+      <div v-if="labaRugiLoading" class="row justify-center q-py-xl">
+        <q-spinner-dots color="primary" size="40px" />
+      </div>
+
+      <!-- Multi-entitas: ringkasan + tombol bandingkan -->
+      <template v-else-if="labaRugiMultiData?.companies && labaRugiMultiData.companies.length >= 2">
+        <div class="row q-mb-md justify-between items-center">
+          <div class="text-caption text-grey-7">
+            Pilih 2 entitas atau lebih untuk membandingkan. Klik tombol di bawah untuk detail.
+          </div>
+          <q-btn
+            color="primary"
+            icon="compare_arrows"
+            label="Lihat perbandingan detail"
+            unelevated
+            no-caps
+            class="border-radius-6"
+            @click="compareDialogOpen = true"
+          />
+        </div>
+        <div class="row q-col-gutter-md q-mb-lg">
+          <q-card
+            v-for="comp in labaRugiMultiData.companies"
+            :key="comp.companyName"
+            class="col-12 col-sm-6 col-md-4 bg-white shadow-1 border-radius-8"
+            flat
+            bordered
+          >
+            <q-card-section class="q-pa-md">
+              <div class="text-caption text-grey-7 text-weight-bold text-uppercase q-mb-xs">
+                {{ comp.companyName }}
+              </div>
+              <div :class="getLabaBersihForCompany(comp) >= 0 ? 'text-positive' : 'text-negative'" class="text-h6 text-weight-bold">
+                {{ formatIdrLabaBersih(getLabaBersihForCompany(comp)) }}
+              </div>
+              <div class="text-caption text-grey-6 q-mt-xs">Laba Bersih</div>
+            </q-card-section>
+          </q-card>
+        </div>
+        <LabaRugiCompareDialog
+          v-model="compareDialogOpen"
+          :companies-data="labaRugiMultiData.companies as LabaRugiCompanyItem[]"
+          :period-label="labaRugiPeriodLabel"
+        />
+      </template>
+
+      <div v-else class="row q-col-gutter-lg">
         <div class="col-12 col-md-8">
           <q-card class="bg-white shadow-1 border-radius-8 q-mb-md" flat bordered>
             <q-card-section class="q-pa-lg">
               <div class="q-mb-xl">
                 <div class="text-subtitle1 text-dark text-weight-bold">Laporan Laba Rugi</div>
-                <div class="text-caption text-grey-7">Periode 1 Jan – 31 Des 2024</div>
-              </div>
-              <div
-                class="text-caption text-grey-7 text-weight-bold q-mb-md text-uppercase"
-                style="letter-spacing: 1px"
-              >
-                Pendapatan
-              </div>
-              <div class="row justify-between text-body2 text-dark q-mb-sm">
-                <span>Penjualan Bersih</span
-                ><span class="text-weight-medium">Rp 29.973.099.497</span>
-              </div>
-              <div
-                class="row justify-between q-pa-sm bg-grey-2 rounded-borders q-mb-xl items-center"
-              >
-                <span class="text-dark text-weight-bold text-body2">Total Pendapatan</span
-                ><span class="text-dark text-weight-bold text-body2">Rp 29.973.099.497</span>
-              </div>
-              <div
-                class="text-caption text-grey-7 text-weight-bold q-mb-md text-uppercase"
-                style="letter-spacing: 1px"
-              >
-                Beban Operasional
-              </div>
-              <div class="row justify-between text-body2 text-dark q-mb-sm">
-                <span>HPP</span><span class="text-negative">(Rp 13.378.852.768)</span>
-              </div>
-              <div
-                class="row justify-between q-pa-sm bg-grey-2 rounded-borders q-mb-xl items-center"
-              >
-                <span class="text-dark text-weight-bold text-body2">Total Beban</span
-                ><span class="text-negative text-weight-bold text-body2">(Rp 13.378.852.768)</span>
-              </div>
-              <div
-                class="row justify-between q-pa-md bg-teal-1 rounded-borders items-center"
-                style="border: 1px solid rgba(20, 184, 166, 0.2)"
-              >
-                <div class="row items-center">
-                  <q-icon name="add" color="positive" size="xs" class="q-mr-sm" /><span
-                    class="text-positive text-weight-bold text-subtitle2 text-uppercase"
-                    style="letter-spacing: 1px"
-                    >Laba Bersih</span
-                  >
+                <div class="text-caption text-grey-7">
+                  {{ labaRugiPeriodLabel }} — {{ labaRugiEntitasLabel }}
                 </div>
-                <span class="text-positive text-weight-bold text-subtitle1">Rp 29.973.999.497</span>
+              </div>
+              <template v-if="labaRugiDisplayLines.length > 0">
+                <template v-for="(line, idx) in labaRugiDisplayLines" :key="idx">
+                  <template v-if="line.kind === 'row'">
+                    <div
+                      class="row justify-between text-body2 text-dark q-mb-xs"
+                      :class="line.row?.isParent ? 'q-mt-md' : ''"
+                    >
+                      <span
+                        :class="line.row?.isParent ? 'text-weight-bold' : 'text-grey-8'"
+                        :style="{ paddingLeft: ((line.row?.lvl ?? 0) * 16) + 'px' }"
+                      >{{ line.row?.accountName ?? line.row?.name ?? '' }}</span>
+                      <span
+                        :class="[
+                          line.row?.isParent ? 'text-weight-bold' : 'text-weight-medium',
+                          (line.row?.amount ?? 0) < 0 ? 'text-negative' : ''
+                        ]"
+                      >{{ formatAmount(line.row?.amount ?? 0) }}</span>
+                    </div>
+                  </template>
+                  <template v-else-if="line.kind === 'subtotal'">
+                    <div
+                      class="row justify-between q-pa-sm rounded-borders items-center q-mt-sm q-mb-sm"
+                      :class="line.subtotalClass"
+                    >
+                      <span :class="line.subtotalLabelClass" class="text-weight-bold text-body2">{{ line.label }}</span>
+                      <span :class="line.subtotalAmountClass" class="text-weight-bold text-body2">{{ line.formattedAmount }}</span>
+                    </div>
+                  </template>
+                </template>
+                <div
+                  class="row justify-between q-pa-md rounded-borders items-center q-mt-md"
+                  :class="labaBersihValue >= 0 ? 'bg-teal-1' : 'bg-red-1'"
+                  style="border: 1px solid rgba(20, 184, 166, 0.2)"
+                >
+                  <div class="row items-center">
+                    <q-icon name="add" :color="labaBersihValue >= 0 ? 'positive' : 'negative'" size="xs" class="q-mr-sm" />
+                    <span
+                      :class="labaBersihValue >= 0 ? 'text-positive' : 'text-negative'"
+                      class="text-weight-bold text-subtitle2 text-uppercase"
+                      style="letter-spacing: 1px"
+                    >Laba Bersih</span>
+                  </div>
+                  <span
+                    :class="labaBersihValue >= 0 ? 'text-positive' : 'text-negative'"
+                    class="text-weight-bold text-subtitle1"
+                  >{{ formatIdrLabaBersih(labaBersihValue) }}</span>
+                </div>
+              </template>
+              <div v-else-if="!labaRugiLoading && labaRugiFetched" class="text-grey-7 text-body2">
+                Tidak ada data. Pilih periode dan entitas lalu klik Apply.
+              </div>
+              <div v-else-if="!labaRugiLoading && !labaRugiFetched" class="text-grey-7 text-body2">
+                Pilih periode dan entitas, lalu klik Apply untuk memuat data.
               </div>
             </q-card-section>
           </q-card>
@@ -259,7 +353,7 @@
             <div class="col-4">
               <q-card class="bg-white shadow-1 border-radius-8" flat bordered
                 ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-dark text-weight-bold text-subtitle1">24.6%</div>
+                  ><div class="text-dark text-weight-bold text-subtitle1">{{ labaRugiGrossMarginPercent }}%</div>
                   <div class="text-grey-7 text-caption q-mt-xs">Gross Margin</div></q-card-section
                 ></q-card
               >
@@ -270,7 +364,7 @@
                 style="border: 1px solid"
                 flat
                 ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-teal-9 text-weight-bold text-subtitle1">24.6%</div>
+                  ><div class="text-teal-9 text-weight-bold text-subtitle1">{{ labaRugiNetMarginPercent }}%</div>
                   <div class="text-teal-8 text-caption q-mt-xs">Net Margin</div></q-card-section
                 ></q-card
               >
@@ -281,7 +375,7 @@
                 style="border: 1px solid"
                 flat
                 ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-blue-9 text-weight-bold text-subtitle1">+15.2%</div>
+                  ><div class="text-blue-9 text-weight-bold text-subtitle1">—</div>
                   <div class="text-blue-8 text-caption q-mt-xs">YoY Growth</div></q-card-section
                 ></q-card
               >
@@ -518,7 +612,7 @@
               <div class="row items-center q-mb-sm">
                 <div class="col-4 text-grey-6 text-caption">Entitas</div>
                 <div class="col-8 text-right text-grey-3 text-caption text-weight-medium">
-                  {{ entitas }}
+                  {{ entitas.length ? entitas.join(', ') : '—' }}
                 </div>
               </div>
               <div class="row items-center q-mb-sm">
@@ -573,15 +667,354 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { date, useQuasar } from 'quasar';
 import VueApexCharts from 'vue3-apexcharts';
 import DateRangePicker from '@/components/DateRangePicker.vue';
+import SingleDatePicker from '@/components/SingleDatePicker.vue';
 import AppButton from '@/shared/components/AppButton.vue';
+import {
+  getCompanies,
+  getLabaRugi,
+  getLabaRugiMulti,
+  getNeraca,
+  type PlAccountRow,
+  type LabaRugiMultiResponse,
+  type LabaRugiCompanyItem,
+  type BsAccountRow,
+} from '@/shared/services/backendApiContract';
+import LabaRugiCompareDialog from '../components/LabaRugiCompareDialog.vue';
 
 const $q = useQuasar();
 
 const isExportPdfDialogOpen = ref(false);
+
+// Entitas (companies) for filter – multi-select untuk tab Laba Rugi
+const companies = ref<string[]>([]);
+const companiesLoading = ref(false);
+const entitas = ref<string[]>([]);
+const entitasOptions = computed(() =>
+  companies.value.map((c) => ({ label: c, value: c }))
+);
+
+// Laba Rugi (P&L) – single entity
+const labaRugiLoading = ref(false);
+const labaRugiError = ref('');
+const labaRugiFetched = ref(false);
+const labaRugiData = ref<PlAccountRow[]>([]);
+// Multi-entity (perbandingan)
+const labaRugiMultiData = ref<LabaRugiMultiResponse | null>(null);
+const compareDialogOpen = ref(false);
+
+// Neraca (Balance Sheet) – filter satu tanggal (as of), bukan range
+const neracaAsOfDate = ref<string | null>(date.formatDate(new Date(), 'YYYY-MM-DD'));
+const neracaLoading = ref(false);
+const neracaError = ref('');
+const neracaData = ref<BsAccountRow[]>([]);
+
+const neracaKasDanSetaraKas = computed(() =>
+  neracaData.value
+    .filter((r) => r.accountType === 'CASH_BANK' && !r.isParent)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+);
+const neracaPiutangUsaha = computed(() =>
+  neracaData.value
+    .filter((r) => r.accountType === 'ACCOUNT_RECEIVABLE' && !r.isParent)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+);
+const neracaUtangUsaha = computed(() =>
+  neracaData.value
+    .filter((r) => r.accountType === 'ACCOUNT_PAYABLE' && !r.isParent)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+);
+
+const neracaTotalAsetLancar = computed(
+  () => neracaKasDanSetaraKas.value + neracaPiutangUsaha.value
+);
+const neracaTotalLiabPendek = computed(() => neracaUtangUsaha.value);
+
+const neracaDateButtonLabel = computed(() =>
+  neracaAsOfDate.value ? date.formatDate(neracaAsOfDate.value, 'D MMM YYYY') : 'Pilih tanggal'
+);
+
+const neracaHeaderText = computed(() => {
+  const asOfLabel = neracaAsOfDate.value
+    ? date.formatDate(neracaAsOfDate.value, 'D MMM YYYY')
+    : 'Pilih tanggal';
+  const e = entitas.value;
+  const entitasLabel = !e || e.length === 0 ? 'Semua Entitas' : e.length === 1 ? e[0] : e.join(', ');
+  return `Per ${asOfLabel} - ${entitasLabel}`;
+});
+
+function formatIdrNumber(value: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+const PARENT_ORDER = ['4101', '5100', '6100', '6200', '6300', '7100', '8100', '8200', '8300'];
+
+function getParentRows(data: PlAccountRow[]): PlAccountRow[] {
+  return data.filter((r) => r.isParent === true);
+}
+
+function getChildren(data: PlAccountRow[], parentNo: string): PlAccountRow[] {
+  return data.filter((r) => r.isParent === false && r.parentNo === parentNo);
+}
+
+const labaRugiTotalPendapatan = computed(() => {
+  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '4101');
+  return Number(parent?.amount) || 0;
+});
+const labaRugiTotalHpp = computed(() => {
+  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '5100');
+  return Number(parent?.amount) || 0;
+});
+const labaRugiTotalBebanOp = computed(() => {
+  return ['6100', '6200', '6300'].reduce((sum, no) => {
+    const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === no);
+    return sum + (Number(parent?.amount) || 0);
+  }, 0);
+});
+const labaRugiTotalPendapatanLain = computed(() => {
+  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '7100');
+  return Number(parent?.amount) || 0;
+});
+const labaRugiTotalBebanLain = computed(() => {
+  return ['8100', '8200', '8300'].reduce((sum, no) => {
+    const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === no);
+    return sum + (Number(parent?.amount) || 0);
+  }, 0);
+});
+
+const labaKotorValue = computed(() => labaRugiTotalPendapatan.value - labaRugiTotalHpp.value);
+const labaUsahaValue = computed(() => labaKotorValue.value - labaRugiTotalBebanOp.value);
+const labaBersihValue = computed(
+  () => labaUsahaValue.value + labaRugiTotalPendapatanLain.value - labaRugiTotalBebanLain.value
+);
+
+type DisplayLine =
+  | { kind: 'row'; row: PlAccountRow }
+  | {
+      kind: 'subtotal';
+      label: string;
+      amount: number;
+      formattedAmount: string;
+      subtotalClass: string;
+      subtotalLabelClass: string;
+      subtotalAmountClass: string;
+    };
+
+const labaRugiDisplayLines = computed((): DisplayLine[] => {
+  const data = labaRugiData.value;
+  if (data.length === 0) return [];
+  const lines: DisplayLine[] = [];
+  const parents = getParentRows(data);
+  for (const parentNo of PARENT_ORDER) {
+    const parent = parents.find((p) => p.accountNo === parentNo);
+    if (!parent) continue;
+    lines.push({ kind: 'row', row: parent });
+    const children = getChildren(data, parentNo);
+    for (const c of children) {
+      lines.push({ kind: 'row', row: c });
+    }
+                if (parentNo === '5100') {
+      const amt = labaKotorValue.value;
+      lines.push({
+        kind: 'subtotal',
+        label: 'Laba Kotor',
+        amount: amt,
+        formattedAmount: formatAmount(amt),
+        subtotalClass: 'bg-grey-2',
+        subtotalLabelClass: 'text-dark',
+        subtotalAmountClass: amt < 0 ? 'text-negative' : 'text-dark',
+      });
+    }
+    if (parentNo === '6300') {
+      const amt = labaUsahaValue.value;
+      lines.push({
+        kind: 'subtotal',
+        label: 'Laba Usaha',
+        amount: amt,
+        formattedAmount: formatAmount(amt),
+        subtotalClass: 'bg-grey-2',
+        subtotalLabelClass: 'text-dark',
+        subtotalAmountClass: amt < 0 ? 'text-negative' : 'text-dark',
+      });
+    }
+  }
+  return lines;
+});
+
+const labaRugiEntitasLabel = computed(() => {
+  const e = entitas.value;
+  if (!e || e.length === 0) return 'Pilih entitas';
+  if (e.length === 1) return e[0];
+  return e.join(', ');
+});
+
+const labaRugiPeriodLabel = computed(() => {
+  if (!dateRange.value || typeof dateRange.value === 'string') return 'Pilih periode';
+  const { from, to } = dateRange.value;
+  if (from && to)
+    return `${date.formatDate(from, 'D MMM YYYY')} – ${date.formatDate(to, 'D MMM YYYY')}`;
+  return 'Pilih periode';
+});
+
+function getLabaBersihForCompany(comp: LabaRugiCompanyItem): number {
+  const data = comp.data || [];
+  const amount = (no: string) => {
+    const p = data.find((r) => r.isParent && r.accountNo === no);
+    return Number(p?.amount) || 0;
+  };
+  const pend = amount('4101');
+  const hpp = amount('5100');
+  const bebanOp = amount('6100') + amount('6200') + amount('6300');
+  const pendLain = amount('7100');
+  const bebanLain = amount('8100') + amount('8200') + amount('8300');
+  return pend - hpp - bebanOp + pendLain - bebanLain;
+}
+const labaRugiGrossMarginPercent = computed(() => {
+  const total = labaRugiTotalPendapatan.value;
+  if (total <= 0) return '0';
+  return ((labaKotorValue.value / total) * 100).toFixed(1);
+});
+const labaRugiNetMarginPercent = computed(() => {
+  const total = labaRugiTotalPendapatan.value;
+  if (total <= 0) return '0';
+  return ((labaBersihValue.value / total) * 100).toFixed(1);
+});
+
+function formatAmount(value: number): string {
+  const abs = Math.abs(value);
+  const formatted = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+    .format(abs)
+    .replace(/,/g, '.');
+  return value < 0 ? `(Rp ${formatted})` : `Rp ${formatted}`;
+}
+
+function formatIdr(value: number): string {
+  const formatted = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value).replace(/,/g, '.');
+  return `Rp ${formatted}`;
+}
+
+function formatIdrLabaBersih(value: number): string {
+  const formatted = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.abs(value)).replace(/,/g, '.');
+  return value < 0 ? `(Rp ${formatted})` : `Rp ${formatted}`;
+}
+
+async function loadCompanies() {
+  companiesLoading.value = true;
+  try {
+    companies.value = await getCompanies();
+  } finally {
+    companiesLoading.value = false;
+  }
+}
+
+async function applyFilters() {
+  const range = dateRange.value;
+  const from = typeof range === 'string' ? range : range?.from;
+  const to = typeof range === 'string' ? range : range?.to;
+
+  if (activeTab.value === 'neraca') {
+    const asOf = neracaAsOfDate.value;
+    if (!asOf) {
+      $q.notify({ type: 'warning', message: 'Pilih tanggal Neraca.', position: 'bottom' });
+      return;
+    }
+    neracaLoading.value = true;
+    neracaError.value = '';
+    try {
+      const sel = entitas.value;
+      const companyNeraca = sel.length === 1 ? sel[0] : undefined;
+      const res = await getNeraca(asOf, companyNeraca);
+      if (res.s === false) {
+        neracaError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat Neraca';
+        neracaData.value = [];
+        return;
+      }
+      const d = res.d;
+      if (Array.isArray(d)) {
+        neracaData.value = d;
+      } else if (d && typeof d === 'object' && !Array.isArray(d)) {
+        const container = d as { rows?: unknown; list?: unknown; data?: unknown };
+        const arr = container.rows ?? container.list ?? container.data;
+        neracaData.value = Array.isArray(arr) ? (arr as BsAccountRow[]) : [];
+      } else {
+        neracaData.value = [];
+      }
+    } catch (e) {
+      neracaError.value = e instanceof Error ? e.message : 'Gagal memuat Neraca';
+      neracaData.value = [];
+    } finally {
+      neracaLoading.value = false;
+    }
+    return;
+  }
+
+  if (activeTab.value !== 'laba-rugi') return;
+  if (!from || !to) {
+    $q.notify({ type: 'warning', message: 'Pilih periode tanggal.', position: 'bottom' });
+    return;
+  }
+  const selected = entitas.value;
+  if (!selected || selected.length === 0) {
+    $q.notify({ type: 'warning', message: 'Pilih minimal 1 entitas.', position: 'bottom' });
+    return;
+  }
+  labaRugiLoading.value = true;
+  labaRugiError.value = '';
+  labaRugiFetched.value = true;
+  labaRugiMultiData.value = null;
+  labaRugiData.value = [];
+  try {
+    if (selected.length >= 2) {
+      const res = await getLabaRugiMulti(from, to, selected);
+      if (res.s === false) {
+        labaRugiError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat data';
+        return;
+      }
+      if (res.companies && res.companies.length > 0) {
+        labaRugiMultiData.value = res;
+      }
+    } else {
+      const res = await getLabaRugi(from, to, selected[0]);
+      if (res.s === false) {
+        labaRugiError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat data';
+        return;
+      }
+      const d = res.d;
+      if (Array.isArray(d)) {
+        labaRugiData.value = d;
+      } else if (d && typeof d === 'object' && !Array.isArray(d)) {
+        const container = d as { rows?: unknown; list?: unknown; data?: unknown };
+        const arr = container.rows ?? container.list ?? container.data;
+        labaRugiData.value = Array.isArray(arr) ? (arr as PlAccountRow[]) : [];
+      }
+    }
+  } catch (e) {
+    labaRugiError.value = e instanceof Error ? e.message : 'Gagal memuat laporan laba rugi';
+  } finally {
+    labaRugiLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  void loadCompanies();
+});
 
 const exportToExcel = () => {
   $q.notify({
@@ -605,7 +1038,6 @@ const handlePrintPdfBtn = () => {
   });
 };
 
-const entitas = ref('Semua Entitas');
 const activeTab = ref('arus-kas');
 
 const dateRange = ref<{ from: string; to: string } | string>({
@@ -624,23 +1056,42 @@ const dateButtonLabel = computed(() => {
 
 // -- ApexCharts Configuration --
 
-// Komposisi Donut Chart
-const donutSeries = ref([210, 90, 30, 70, 20, 20]);
-const donutOptions = ref({
+// Komposisi Donut Chart (berdasarkan komponen utama Laba Rugi)
+// Slice: HPP (5100), Beban Operasional (6100+6200+6300), Beban Lain-lain (8100+8200+8300)
+const donutLabels = computed(() => {
+  const labels: string[] = [];
+  if (Math.abs(labaRugiTotalHpp.value) > 0) labels.push('HPP');
+  if (Math.abs(labaRugiTotalBebanOp.value) > 0) labels.push('Beban Operasional');
+  if (Math.abs(labaRugiTotalBebanLain.value) > 0) labels.push('Beban Lain-lain');
+  return labels;
+});
+
+const donutSeries = computed(() => {
+  const series: number[] = [];
+  if (Math.abs(labaRugiTotalHpp.value) > 0) series.push(Math.abs(labaRugiTotalHpp.value));
+  if (Math.abs(labaRugiTotalBebanOp.value) > 0) series.push(Math.abs(labaRugiTotalBebanOp.value));
+  if (Math.abs(labaRugiTotalBebanLain.value) > 0)
+    series.push(Math.abs(labaRugiTotalBebanLain.value));
+  return series;
+});
+
+const donutOptions = computed(() => ({
   chart: { type: 'donut' as const, fontFamily: 'Inter, sans-serif' },
-  labels: ['HPP', 'Gaji', 'Sewa', 'Penyusutan', 'Pemasaran', 'Lainnya'],
-  colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#64748b'],
+  labels: donutLabels.value,
+  colors: ['#3b82f6', '#10b981', '#ef4444'],
   plotOptions: {
     pie: { donut: { size: '65%' } },
   },
   dataLabels: { enabled: false },
-  legend: { show: false }, // Using custom legend
+  legend: { show: false }, // Using custom legend (bisa ditambahkan nanti)
   stroke: { show: false },
   tooltip: {
     theme: 'light',
-    y: { formatter: (val: number) => `Rp ${val} Juta` },
+    y: {
+      formatter: (val: number) => formatIdr(val),
+    },
   },
-});
+}));
 
 // Arus Kas Mixed Chart
 const cashFlowSeries = ref([
