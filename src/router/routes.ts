@@ -132,7 +132,7 @@ export const routes: RouteRecordRaw[] = [
       {
         path: 'sales-order',
         name: 'sales-order',
-        component: () => import('@/features/sales-order/SalesOrderPage.vue'),
+        component: () => import('@/features/laporan-keuangan/pages/SalesOrderPage.vue'),
         meta: {
           title: 'Sales Order',
           breadcrumb: [{ label: 'Home', to: '/' }, { label: 'Sales Order' }],
