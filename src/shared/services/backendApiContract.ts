@@ -11,8 +11,7 @@ import axios, { type AxiosInstance } from 'axios';
 // Base URL & Endpoints
 // ---------------------------------------------------------------------------
 
-export const BACKEND_BASE_URL =
-  import.meta.env.VITE_BACKEND_API_URL ?? 'https://localhost:55585';
+export const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_API_URL ?? 'https://localhost:55585';
 
 const API_PREFIX = '/api';
 
@@ -58,10 +57,9 @@ export async function getCompanies(): Promise<string[]> {
 /** Fetches database host configuration. Optional company for multi-tenant. */
 export async function getDatabaseHost(company?: string): Promise<DatabaseHostResponse> {
   const params = company ? { company } : undefined;
-  const { data } = await backendClient.get<DatabaseHostResponse>(
-    `${API_PREFIX}/database-host`,
-    { params }
-  );
+  const { data } = await backendClient.get<DatabaseHostResponse>(`${API_PREFIX}/database-host`, {
+    params,
+  });
   return data;
 }
 
@@ -112,10 +110,10 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 export async function getCoaByNo(no: string, company?: string): Promise<CoaResponse> {
   try {
     const params = company ? { company } : undefined;
-    const response = await backendClient.get(
-      `${API_PREFIX}/coa/${encodeURIComponent(no)}`,
-      { responseType: 'json', params }
-    );
+    const response = await backendClient.get(`${API_PREFIX}/coa/${encodeURIComponent(no)}`, {
+      responseType: 'json',
+      params,
+    });
     const data = response.data as unknown;
     // Backend returns raw Accurate JSON: { s: boolean, d: CoaItem }
     const envelope = data as BackendEnvelope<CoaResponse>;
@@ -124,24 +122,19 @@ export async function getCoaByNo(no: string, company?: string): Promise<CoaRespo
       throw new Error(
         envelope?.s === false && typeof envelope?.d === 'string'
           ? envelope.d
-          : 'Invalid COA response'
+          : 'Invalid COA response',
       );
     }
     if (envelope?.s === false) {
-      throw new Error(
-        typeof envelope.d === 'string' ? envelope.d : 'COA request failed'
-      );
+      throw new Error(typeof envelope.d === 'string' ? envelope.d : 'COA request failed');
     }
     return payload;
   } catch (err: unknown) {
     const msg =
       err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { d?: string }; status?: number } })
-            .response?.data?.d
+        ? (err as { response?: { data?: { d?: string }; status?: number } }).response?.data?.d
         : null;
-    throw new Error(
-      msg ?? (err instanceof Error ? err.message : 'Gagal mengambil data COA')
-    );
+    throw new Error(msg ?? (err instanceof Error ? err.message : 'Gagal mengambil data COA'));
   }
 }
 
@@ -173,9 +166,7 @@ export async function getSalesOrders(company?: string): Promise<SalesOrderItem[]
     const envelope = data as BackendEnvelope<SalesOrderItem[] | SalesOrderItem | string>;
     const payload = envelope?.d;
     if (envelope?.s === false) {
-      throw new Error(
-        typeof payload === 'string' ? payload : 'Gagal mengambil data Sales Order'
-      );
+      throw new Error(typeof payload === 'string' ? payload : 'Gagal mengambil data Sales Order');
     }
     if (payload == null) return [];
     return Array.isArray(payload) ? payload : [payload as SalesOrderItem];
@@ -230,7 +221,7 @@ export function formatDateForAccurate(isoDate: string): string {
 export async function getLabaRugi(
   fromDate: string,
   toDate: string,
-  company?: string
+  company?: string,
 ): Promise<LabaRugiResponse> {
   const from = formatDateForAccurate(fromDate);
   const to = formatDateForAccurate(toDate);
@@ -238,7 +229,7 @@ export async function getLabaRugi(
   if (company && company !== 'Semua Entitas') params.company = company;
   const { data } = await backendClient.get<LabaRugiResponse>(
     `${API_PREFIX}/laporan-keuangan/laba-rugi`,
-    { params }
+    { params },
   );
   return data;
 }
@@ -259,7 +250,7 @@ export interface LabaRugiMultiResponse {
 export async function getLabaRugiMulti(
   fromDate: string,
   toDate: string,
-  companies: string[]
+  companies: string[],
 ): Promise<LabaRugiMultiResponse> {
   const from = formatDateForAccurate(fromDate);
   const to = formatDateForAccurate(toDate);
@@ -302,16 +293,13 @@ export interface NeracaMultiResponse {
 }
 
 /** Fetches Neraca (Balance Sheet) untuk satu entitas. asOfDate ISO → dd/MM/yyyy. */
-export async function getNeraca(
-  asOfDateIso: string,
-  company?: string
-): Promise<NeracaResponse> {
+export async function getNeraca(asOfDateIso: string, company?: string): Promise<NeracaResponse> {
   const asOfDate = formatDateForAccurate(asOfDateIso);
   const params: Record<string, string> = { asOfDate };
   if (company && company !== 'Semua Entitas') params.company = company;
   const { data } = await backendClient.get<NeracaResponse>(
     `${API_PREFIX}/laporan-keuangan/neraca`,
-    { params }
+    { params },
   );
   return data;
 }
@@ -319,7 +307,7 @@ export async function getNeraca(
 /** Fetches Neraca (Balance Sheet) untuk multi entitas. */
 export async function getNeracaMulti(
   asOfDateIso: string,
-  companies: string[]
+  companies: string[],
 ): Promise<NeracaMultiResponse> {
   const asOfDate = formatDateForAccurate(asOfDateIso);
   const filtered = companies.filter((c) => c && c !== 'Semua Entitas');
@@ -351,7 +339,7 @@ export const BackendApiContract = {
   getSalesOrders,
   getLabaRugi,
   getLabaRugiMulti,
-   getNeraca,
-   getNeracaMulti,
+  getNeraca,
+  getNeracaMulti,
   formatDateForAccurate,
 } as const;
