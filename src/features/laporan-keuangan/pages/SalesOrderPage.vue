@@ -50,7 +50,7 @@
           >
           <q-select
             v-model="entitas"
-            :options="['Semua Entitas', 'PT Aksa Digitex', 'PT Maju Bersama', 'PT Karya Nusantara', 'PT Sinar Abadi']"
+            :options="entitasOptions"
             dense
             outlined
             color="primary"
@@ -79,7 +79,7 @@
             </q-popup-proxy>
           </q-btn>
         </div>
-        
+
         <div class="col-auto row items-center">
           <span
             class="text-grey-7 q-mr-sm text-caption text-weight-bold text-uppercase"
@@ -95,14 +95,14 @@
             class="filter-select"
             hide-dropdown-icon
             bg-color="white"
-            style="width: 120px;"
+            style="width: 120px"
           >
             <template v-slot:append
               ><q-icon name="expand_more" color="grey-7" size="xs"
             /></template>
           </q-select>
         </div>
-        
+
         <div class="col-auto">
           <q-btn
             color="primary"
@@ -112,17 +112,30 @@
             size="sm"
             no-caps
             style="height: 36px"
+            :loading="isLoading"
+            @click="onApplyFilters"
           />
         </div>
       </q-card-section>
     </q-card>
+
+    <!-- Error Banner -->
+    <q-banner v-if="errorMessage" class="bg-negative text-white q-mb-lg border-radius-8">
+      <template v-slot:avatar>
+        <q-icon name="error" size="sm" />
+      </template>
+      {{ errorMessage }}
+      <template v-slot:action>
+        <q-btn flat label="Tutup" @click="errorMessage = null" />
+      </template>
+    </q-banner>
 
     <!-- KPI Cards -->
     <div class="row q-col-gutter-lg q-mb-lg">
       <div class="col-12 col-md-3">
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
-            <div class="text-primary text-h6 text-weight-bold q-mb-xs">Rp 12,4M</div>
+            <div class="text-primary text-h6 text-weight-bold q-mb-xs">{{ kpiTotal }}</div>
             <div class="text-grey-6 text-caption">Total Nilai SO</div>
           </q-card-section>
         </q-card>
@@ -130,7 +143,12 @@
       <div class="col-12 col-md-3">
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
-            <div class="text-primary text-h6 text-weight-bold q-mb-xs" style="color: #3b82f6 !important">Rp 5,8M</div>
+            <div
+              class="text-primary text-h6 text-weight-bold q-mb-xs"
+              style="color: #3b82f6 !important"
+            >
+              {{ kpiOutstanding }}
+            </div>
             <div class="text-grey-6 text-caption">SO Outstanding</div>
           </q-card-section>
         </q-card>
@@ -138,7 +156,7 @@
       <div class="col-12 col-md-3">
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
-            <div class="text-warning text-h6 text-weight-bold q-mb-xs">Rp 3,2M</div>
+            <div class="text-warning text-h6 text-weight-bold q-mb-xs">{{ kpiPartial }}</div>
             <div class="text-grey-6 text-caption">SO Partial</div>
           </q-card-section>
         </q-card>
@@ -146,7 +164,7 @@
       <div class="col-12 col-md-3">
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
-            <div class="text-positive text-h6 text-weight-bold q-mb-xs">Rp 3,4M</div>
+            <div class="text-positive text-h6 text-weight-bold q-mb-xs">{{ kpiClosed }}</div>
             <div class="text-grey-6 text-caption">SO Closed</div>
           </q-card-section>
         </q-card>
@@ -156,9 +174,9 @@
     <!-- Charts Section -->
     <div class="row q-col-gutter-lg q-mb-lg">
       <div class="col-12 col-md-7">
-         <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
+        <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
           <q-card-section class="q-pa-md border-bottom">
-             <div
+            <div
               class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
               style="letter-spacing: 1px"
             >
@@ -166,19 +184,14 @@
             </div>
           </q-card-section>
           <q-card-section class="q-pa-lg">
-             <VueApexCharts
-                type="bar"
-                height="240"
-                :options="barOptions"
-                :series="barSeries"
-              />
+            <VueApexCharts type="bar" height="240" :options="barOptions" :series="barSeries" />
           </q-card-section>
         </q-card>
       </div>
       <div class="col-12 col-md-5">
-         <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
+        <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
           <q-card-section class="q-pa-md border-bottom">
-             <div
+            <div
               class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
               style="letter-spacing: 1px"
             >
@@ -186,12 +199,12 @@
             </div>
           </q-card-section>
           <q-card-section class="q-pa-lg">
-              <VueApexCharts
-                type="donut"
-                height="220"
-                :options="donutOptions"
-                :series="donutSeries"
-              />
+            <VueApexCharts
+              type="donut"
+              height="220"
+              :options="donutOptions"
+              :series="donutSeries"
+            />
           </q-card-section>
         </q-card>
       </div>
@@ -219,27 +232,39 @@
           </template>
         </q-input>
       </q-card-section>
-      
+
       <q-table
+        v-model:pagination="pagination"
         :rows="filteredTableData"
         :columns="tableColumns"
-        row-key="id"
+        row-key="_rowKey"
         flat
-        hide-bottom
-        :pagination="{ rowsPerPage: 10 }"
+        :loading="isLoading"
+        :rows-per-page-options="[10, 25, 50]"
+        rows-per-page-label="Baris per halaman"
         class="text-body2 bg-white"
         table-header-class="text-grey-8 bg-grey-1 text-weight-bold"
       >
         <template v-slot:body-cell-no_so="props">
           <q-td :props="props">
-            <q-badge outline color="primary" class="bg-blue-1 text-weight-medium q-pa-xs border-radius-6" style="letter-spacing: 0.5px;">
+            <q-badge
+              outline
+              color="primary"
+              class="bg-blue-1 text-weight-medium q-pa-xs border-radius-6"
+              style="letter-spacing: 0.5px"
+            >
               {{ props.row.no_so }}
             </q-badge>
           </q-td>
         </template>
         <template v-slot:body-cell-entitas="props">
           <q-td :props="props">
-            <q-badge outline color="grey-7" class="bg-grey-2 text-weight-medium q-pa-xs border-radius-6" style="letter-spacing: 0.5px;">
+            <q-badge
+              outline
+              color="grey-7"
+              class="bg-grey-2 text-weight-medium q-pa-xs border-radius-6"
+              style="letter-spacing: 0.5px"
+            >
               {{ props.row.entitas }}
             </q-badge>
           </q-td>
@@ -259,19 +284,19 @@
             {{ formatCurrency(props.row.sisa) }}
           </q-td>
         </template>
-        
+
         <!-- Status Slot -->
         <template v-slot:body-cell-status="props">
-            <q-td :props="props" class="text-center">
-              <q-badge
-                outline
-                :color="getStatusColor(props.row.status)"
-                class="q-px-sm q-py-xs bg-white text-weight-bold"
-                style="border-radius: 6px; letter-spacing: 0.5px"
-              >
-                  {{ props.row.status }}
-              </q-badge>
-            </q-td>
+          <q-td :props="props" class="text-center">
+            <q-badge
+              outline
+              :color="getStatusColor(props.row.status)"
+              class="q-px-sm q-py-xs bg-white text-weight-bold"
+              style="border-radius: 6px; letter-spacing: 0.5px"
+            >
+              {{ props.row.status }}
+            </q-badge>
+          </q-td>
         </template>
       </q-table>
     </q-card>
@@ -375,23 +400,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { date, useQuasar } from 'quasar';
 import VueApexCharts from 'vue3-apexcharts';
 import DateRangePicker from '@/components/DateRangePicker.vue';
 import AppButton from '@/shared/components/AppButton.vue';
+import {
+  getSalesOrders,
+  getCompanies,
+  type SalesOrderItem,
+} from '@/shared/services/backendApiContract';
 
 const $q = useQuasar();
 
+const entitasOptions = ref<string[]>(['Semua Entitas']);
 const entitas = ref('Semua Entitas');
 const statusFilter = ref('Semua');
 const searchQuery = ref('');
+const isLoading = ref(false);
+const errorMessage = ref<string | null>(null);
 
 const isExportPdfDialogOpen = ref(false);
 
+const pagination = ref({
+  sortBy: 'tanggal' as const,
+  descending: true,
+  page: 1,
+  rowsPerPage: 10,
+});
+
 const dateRange = ref<{ from: string; to: string } | string>({
-  from: '2024-01-01',
-  to: '2024-12-31',
+  from: '2025-01-01',
+  to: '2026-12-31',
 });
 
 const dateButtonLabel = computed(() => {
@@ -402,6 +442,103 @@ const dateButtonLabel = computed(() => {
     return `${date.formatDate(from, 'D MMM YYYY')} - ${date.formatDate(to, 'D MMM YYYY')}`;
   return 'Pilih Tanggal';
 });
+
+function extractName(val: string | { name?: string } | undefined): string {
+  if (!val) return '-';
+  return typeof val === 'string' ? val : (val?.name ?? '-');
+}
+
+function mapApiToTableRow(item: SalesOrderItem, companyHint?: string) {
+  const amount = item.totalAmount ?? 0;
+  const id = item.id ?? 0;
+  return {
+    id,
+    _rowKey: companyHint ? `${companyHint}-${id}` : String(id),
+    no_so: item.number ?? '-',
+    name: extractName(item.customer),
+    entitas: extractName(item.branch),
+    tanggal: item.transDate ? date.formatDate(item.transDate, 'YYYY-MM-DD') : '-',
+    nilai_so: amount,
+    terkirim: '-',
+    sisa: '-',
+    status: item.status ?? '-',
+  };
+}
+
+type TableRow = ReturnType<typeof mapApiToTableRow>;
+
+const soData = ref<TableRow[]>([]);
+
+async function fetchSalesOrders() {
+  isLoading.value = true;
+  errorMessage.value = null;
+  try {
+    const isAllEntitas = entitas.value === 'Semua Entitas';
+
+    if (isAllEntitas) {
+      // Semua Entitas = ambil data dari SEMUA perusahaan
+      const companies = await getCompanies();
+      if (companies.length === 0) {
+        soData.value = [];
+        $q.notify({
+          type: 'warning',
+          message: 'Tidak ada perusahaan terkonfigurasi.',
+          position: 'bottom',
+        });
+        return;
+      }
+
+      const results = await Promise.allSettled(companies.map((company) => getSalesOrders(company)));
+
+      const allItems: TableRow[] = [];
+      const failedCompanies: string[] = [];
+
+      results.forEach((result, index) => {
+        const company = companies[index] ?? '';
+        if (result.status === 'fulfilled') {
+          const rows = result.value.map((item) => mapApiToTableRow(item, company || undefined));
+          allItems.push(...rows);
+        } else if (company) {
+          failedCompanies.push(company);
+        }
+      });
+
+      soData.value = allItems;
+
+      if (failedCompanies.length > 0) {
+        $q.notify({
+          type: 'warning',
+          message: `Data dari ${failedCompanies.length} perusahaan gagal dimuat: ${failedCompanies.join(', ')}`,
+          position: 'bottom',
+          timeout: 5000,
+        });
+      }
+      if (allItems.length === 0 && failedCompanies.length === companies.length) {
+        errorMessage.value = 'Semua perusahaan gagal dimuat.';
+        $q.notify({
+          type: 'negative',
+          message: 'Gagal memuat data dari semua perusahaan.',
+          position: 'bottom',
+        });
+      }
+    } else {
+      // Satu perusahaan saja
+      const items = await getSalesOrders(entitas.value);
+      soData.value = items.map((item) => mapApiToTableRow(item, entitas.value));
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Gagal memuat data Sales Order';
+    errorMessage.value = msg;
+    soData.value = [];
+    $q.notify({ type: 'negative', message: msg, position: 'bottom' });
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+function onApplyFilters() {
+  void fetchSalesOrders();
+}
 
 const exportToExcel = () => {
   $q.notify({
@@ -428,11 +565,11 @@ const handlePrintPdfBtn = () => {
 const formatCurrency = (val: number | string) => {
   if (val === '-' || val === 0) return 'Rp 0';
   if (typeof val === 'number') {
-     if (val >= 1000) return `Rp ${(val / 1000).toLocaleString('id-ID')}rb`;
-     if (val >= 1000000) return `Rp ${(val / 1000000).toLocaleString('id-ID')}M`;
-     return `Rp ${val.toLocaleString('id-ID')}rb`; // default assuming raw data is in thousands for small values or we handle it like UI design
+    if (val >= 1_000_000) return `Rp ${(val / 1_000_000).toLocaleString('id-ID')}M`;
+    if (val >= 1000) return `Rp ${(val / 1000).toLocaleString('id-ID')}rb`;
+    return `Rp ${val.toLocaleString('id-ID')}`;
   }
-  return val;
+  return String(val);
 };
 
 const getStatusColor = (status: string) => {
@@ -442,25 +579,55 @@ const getStatusColor = (status: string) => {
   return 'grey';
 };
 
-// -- Dummy Data for Table --
-const soData = [
-  { id: 1, no_so: 'SO-2024-0091', name: 'PT Mega Konstruksi', entitas: 'PT Maju Bersama', tanggal: '2024-11-15', nilai_so: '1.2M', terkirim: 0, sisa: '1.2M', status: 'Open' },
-  { id: 2, no_so: 'SO-2024-0076', name: 'CV Bintang Timur', entitas: 'PT Karya Nusantara', tanggal: '2024-11-10', nilai_so: '850rb', terkirim: '420rb', sisa: '430rb', status: 'Partial' },
-  { id: 3, no_so: 'SO-2024-0052', name: 'PT Sinar Mas', entitas: 'PT Maju Bersama', tanggal: '2024-10-28', nilai_so: '600rb', terkirim: '600rb', sisa: 0, status: 'Closed' },
-  { id: 4, no_so: 'SO-2024-0041', name: 'Koperasi Mandiri', entitas: 'PT Sinar Abadi', tanggal: '2024-10-22', nilai_so: '520rb', terkirim: '200rb', sisa: '320rb', status: 'Partial' },
-  { id: 5, no_so: 'SO-2024-0030', name: 'PT Graha Raya', entitas: 'PT Maju Bersama', tanggal: '2024-10-15', nilai_so: '1.4M', terkirim: 0, sisa: '1.4M', status: 'Open' },
-];
-
 const filteredTableData = computed(() => {
-  let data = soData;
+  let data = soData.value;
   if (statusFilter.value !== 'Semua') {
-      data = data.filter((item) => item.status === statusFilter.value);
+    data = data.filter((item) => item.status === statusFilter.value);
   }
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
-    data = data.filter((item) => item.name.toLowerCase().includes(q) || item.no_so.toLowerCase().includes(q));
+    data = data.filter(
+      (item) => item.name.toLowerCase().includes(q) || item.no_so.toLowerCase().includes(q),
+    );
+  }
+  // Filter by date range (client-side)
+  const range = dateRange.value;
+  if (range && typeof range === 'object' && 'from' in range && 'to' in range) {
+    const from = range.from;
+    const to = range.to;
+    if (from && to) {
+      data = data.filter((item) => {
+        const t = item.tanggal;
+        if (!t || t === '-') return false;
+        return t >= from && t <= to;
+      });
+    }
   }
   return data;
+});
+
+// KPI dari data yang sudah difilter (tanggal, status, search)
+const kpiTotal = computed(() => {
+  const sum = filteredTableData.value.reduce((acc, r) => acc + Number(r.nilai_so), 0);
+  return formatCurrency(sum);
+});
+
+const kpiOutstanding = computed(() => {
+  const open = filteredTableData.value.filter((r) => r.status === 'Open');
+  const sum = open.reduce((acc, r) => acc + Number(r.nilai_so), 0);
+  return formatCurrency(sum);
+});
+
+const kpiPartial = computed(() => {
+  const partial = filteredTableData.value.filter((r) => r.status === 'Partial');
+  const sum = partial.reduce((acc, r) => acc + Number(r.nilai_so), 0);
+  return formatCurrency(sum);
+});
+
+const kpiClosed = computed(() => {
+  const closed = filteredTableData.value.filter((r) => r.status === 'Closed');
+  const sum = closed.reduce((acc, r) => acc + Number(r.nilai_so), 0);
+  return formatCurrency(sum);
 });
 
 const tableColumns = [
@@ -468,40 +635,89 @@ const tableColumns = [
   { name: 'customer', label: 'CUSTOMER', field: 'name', align: 'left' as const, sortable: true },
   { name: 'entitas', label: 'ENTITAS', field: 'entitas', align: 'left' as const, sortable: true },
   { name: 'tanggal', label: 'TANGGAL', field: 'tanggal', align: 'left' as const, sortable: true },
-  { name: 'nilai_so', label: 'NILAI SO', field: 'nilai_so', align: 'left' as const, sortable: true },
-  { name: 'terkirim', label: 'TERKIRIM', field: 'terkirim', align: 'left' as const, sortable: true },
+  {
+    name: 'nilai_so',
+    label: 'NILAI SO',
+    field: 'nilai_so',
+    align: 'left' as const,
+    sortable: true,
+  },
+  {
+    name: 'terkirim',
+    label: 'TERKIRIM',
+    field: 'terkirim',
+    align: 'left' as const,
+    sortable: true,
+  },
   { name: 'sisa', label: 'SISA', field: 'sisa', align: 'left' as const, sortable: true },
   { name: 'status', label: 'STATUS', field: 'status', align: 'center' as const, sortable: true },
 ];
 
-// -- Chart Config --
-const barSeries = ref([
-    {
-      name: 'Open',
-      data: [3]
-    }, {
-      name: 'Partial',
-      data: [2]
-    }, {
-      name: 'Closed',
-      data: [3]
-    }
-]);
+// Chart data dari data real
+const barSeries = computed(() => {
+  const open = soData.value.filter((r) => r.status === 'Open').length;
+  const partial = soData.value.filter((r) => r.status === 'Partial').length;
+  const closed = soData.value.filter((r) => r.status === 'Closed').length;
+  return [
+    { name: 'Open', data: [open] },
+    { name: 'Partial', data: [partial] },
+    { name: 'Closed', data: [closed] },
+  ];
+});
 
+const donutSeries = computed(() => {
+  const byBranch = new Map<string, number>();
+  for (const r of filteredTableData.value) {
+    const b = r.entitas || 'Lainnya';
+    byBranch.set(b, (byBranch.get(b) ?? 0) + 1);
+  }
+  return Array.from(byBranch.values());
+});
+
+const donutLabels = computed(() => {
+  const byBranch = new Map<string, number>();
+  for (const r of filteredTableData.value) {
+    const b = r.entitas || 'Lainnya';
+    byBranch.set(b, (byBranch.get(b) ?? 0) + 1);
+  }
+  return Array.from(byBranch.keys());
+});
+
+onMounted(async () => {
+  try {
+    const companies = await getCompanies();
+    entitasOptions.value = ['Semua Entitas', ...companies];
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Gagal memuat daftar perusahaan';
+    $q.notify({
+      type: 'warning',
+      message: `${msg}. Filter Entitas menggunakan default.`,
+      position: 'bottom',
+    });
+    entitasOptions.value = ['Semua Entitas'];
+  }
+  try {
+    await fetchSalesOrders();
+  } catch {
+    // fetchSalesOrders sudah handle error & notify
+  }
+});
+
+// -- Chart Config --
 const barOptions = computed(() => ({
-  chart: { 
-     type: 'bar' as const, 
-     height: 240,
-     stacked: true,
-     toolbar: { show: false },
-     fontFamily: 'Inter, sans-serif'
+  chart: {
+    type: 'bar' as const,
+    height: 240,
+    stacked: true,
+    toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif',
   },
   colors: ['#3b82f6', '#f59e0b', '#10b981'], // blue, warning, green
   plotOptions: {
     bar: {
       horizontal: true,
       barHeight: '60%',
-      borderRadius: 4
+      borderRadius: 4,
     },
   },
   xaxis: {
@@ -511,48 +727,46 @@ const barOptions = computed(() => ({
     axisTicks: { show: false },
   },
   yaxis: {
-     show: false,
+    show: false,
   },
   grid: {
-     show: false,
+    show: false,
   },
   dataLabels: { enabled: false }, // turn off text inside bars
-  legend: { 
-     position: 'left' as const, 
-     horizontalAlign: 'left' as const, 
-     offsetY: 20 
+  legend: {
+    position: 'left' as const,
+    horizontalAlign: 'left' as const,
+    offsetY: 20,
   },
   stroke: { show: false },
   tooltip: {
     theme: 'light',
-    y: { formatter: (val: number) => `${val} SO` }
+    y: { formatter: (val: number) => `${val} SO` },
   },
 }));
 
 // Donut Chart
-const donutSeries = ref([45, 30, 25]);
 const donutOptions = computed(() => ({
   chart: { type: 'donut' as const, fontFamily: 'Inter, sans-serif' },
-  labels: ['PT Maju Bersama', 'PT Karya Nusantara', 'PT Sinar Abadi'],
+  labels: donutLabels.value,
   colors: ['#3b82f6', '#10b981', '#8b5cf6'],
   plotOptions: {
-    pie: { 
-      donut: { 
+    pie: {
+      donut: {
         size: '65%',
-      } 
+      },
     },
   },
   dataLabels: { enabled: false },
-  legend: { 
+  legend: {
     position: 'right' as const,
-    offsetY: 40
-  }, 
+    offsetY: 40,
+  },
   stroke: { show: false },
   tooltip: {
     theme: 'light',
   },
 }));
-
 </script>
 
 <style scoped>

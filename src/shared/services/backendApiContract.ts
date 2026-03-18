@@ -24,6 +24,7 @@ export const BackendEndpoints = {
     if (company) return `${path}?company=${encodeURIComponent(company)}`;
     return path;
   },
+  SALES_ORDERS: `${BACKEND_BASE_URL}${API_PREFIX}/sales-orders`,
   LAPORAN_LABA_RUGI: `${BACKEND_BASE_URL}${API_PREFIX}/laporan-keuangan/laba-rugi`,
   LAPORAN_NERACA: `${BACKEND_BASE_URL}${API_PREFIX}/laporan-keuangan/neraca`,
 } as const;
@@ -91,6 +92,22 @@ export interface BackendEnvelope<T> {
   d: T;
 }
 
+/** Extract user-friendly error message from axios/unknown error. */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object' && 'response' in err) {
+    const res = (err as { response?: { data?: unknown; status?: number } }).response;
+    if (res?.data && typeof res.data === 'object' && 'detail' in res.data) {
+      const d = (res.data as { detail?: string }).detail;
+      if (typeof d === 'string') return d;
+    }
+    if (res?.status === 404) return 'Endpoint tidak ditemukan. Periksa konfigurasi API.';
+    if (res?.status === 500) return 'Server error. Silakan coba lagi nanti.';
+    if (res?.status && res.status >= 400) return `Error ${res.status}. ${fallback}`;
+  }
+  return fallback;
+}
+
 /** Fetches a single Chart of Accounts entry by account number. Unwraps { s, d } to return d. Optional company for multi-tenant. */
 export async function getCoaByNo(no: string, company?: string): Promise<CoaResponse> {
   try {
@@ -125,6 +142,46 @@ export async function getCoaByNo(no: string, company?: string): Promise<CoaRespo
     throw new Error(
       msg ?? (err instanceof Error ? err.message : 'Gagal mengambil data COA')
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sales Order API
+// ---------------------------------------------------------------------------
+
+/** Sales Order item from Accurate API (list.do) */
+export interface SalesOrderItem {
+  id?: number;
+  number?: string;
+  transDate?: string;
+  customer?: string | { name?: string };
+  branch?: string | { name?: string };
+  totalAmount?: number;
+  status?: string;
+  [key: string]: unknown;
+}
+
+/** Fetches sales order list. Optional ?company= for multi-company. */
+export async function getSalesOrders(company?: string): Promise<SalesOrderItem[]> {
+  try {
+    const params = company ? { company } : undefined;
+    const response = await backendClient.get(`${API_PREFIX}/sales-orders`, {
+      params,
+      responseType: 'json',
+    });
+    const data = response.data as unknown;
+    const envelope = data as BackendEnvelope<SalesOrderItem[] | SalesOrderItem | string>;
+    const payload = envelope?.d;
+    if (envelope?.s === false) {
+      throw new Error(
+        typeof payload === 'string' ? payload : 'Gagal mengambil data Sales Order'
+      );
+    }
+    if (payload == null) return [];
+    return Array.isArray(payload) ? payload : [payload as SalesOrderItem];
+  } catch (err: unknown) {
+    const msg = extractErrorMessage(err, 'Gagal mengambil data Sales Order');
+    throw new Error(msg);
   }
 }
 
@@ -284,12 +341,14 @@ export const BackendApiContract = {
     companies: 'GET /api/companies',
     databaseHost: 'GET /api/database-host',
     coa: 'GET /api/coa/{no}',
+    salesOrders: 'GET /api/sales-orders',
     labaRugi: 'GET /api/laporan-keuangan/laba-rugi',
     neraca: 'GET /api/laporan-keuangan/neraca',
   },
   getCompanies,
   getDatabaseHost,
   getCoaByNo,
+  getSalesOrders,
   getLabaRugi,
   getLabaRugiMulti,
    getNeraca,
