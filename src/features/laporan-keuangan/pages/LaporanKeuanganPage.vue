@@ -634,7 +634,9 @@ async function applyFilters() {
         labaRugiMultiData.value = res;
       }
     } else {
-      const res = await getLabaRugi(from, to, selected[0]);
+      const company = selected[0];
+      if (!company) return;
+      const res = await getLabaRugi(from, to, company);
       if (res.s === false) {
         labaRugiError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat data';
         return;
