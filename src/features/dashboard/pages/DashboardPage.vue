@@ -8,10 +8,28 @@
           <div>
             <h1 class="text-3xl font-bold text-[#1a202c]">Financial Overview</h1>
             <p class="mt-1 text-sm text-[#718096]">
-              Semua Entitas - Periode Januari - Desember 2024 - Data real-time
+              {{ selectedCompanies.length ? selectedCompanies.join(', ') + ' - ' : '' }}Periode Januari - Desember 2024 - Data real-time
             </p>
           </div>
-          <q-btn
+          <div class="flex flex-wrap items-center gap-3">
+            <q-select
+              v-model="selectedCompanies"
+              :options="companyOptions"
+              multiple
+              use-chips
+              option-label="label"
+              option-value="value"
+              emit-value
+              map-options
+              dense
+              outlined
+              label="Perusahaan"
+              class="min-w-[220px]"
+              :loading="companiesLoading"
+              :disable="companiesLoading || financialOverview.isLoading.value"
+              @update:model-value="onCompanyChange"
+            />
+            <q-btn
             flat
             round
             dense
@@ -21,6 +39,7 @@
             :disable="financialOverview.isLoading.value"
             @click="handleRefresh"
           />
+          </div>
         </div>
 
         <!-- Financial Overview Cards (Quasar default / light) -->
@@ -114,77 +133,13 @@
       </header>
 
       <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm xl:col-span-2">
-          <h3 class="text-2xl font-bold text-[#1a202c]">Revenue & Expense Analysis</h3>
-          <p class="mt-1 text-sm text-[#718096]">Monthly performance comparison</p>
-
-          <div class="mt-6 rounded-lg border border-dashed border-[#e8eef5] p-4">
-            <div ref="revenueChartRef" class="relative h-[280px]">
-              <svg
-                class="pointer-events-none absolute inset-0 h-full w-full"
-                viewBox="0 0 1000 280"
-                preserveAspectRatio="none"
-              >
-                <polyline
-                  :points="profitLinePoints"
-                  fill="none"
-                  stroke="#00aa44"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-
-              <div class="flex h-full items-end justify-between gap-2 pt-4">
-                <div
-                  v-for="row in revenueData"
-                  :key="row.month"
-                  class="flex min-w-[48px] flex-1 cursor-pointer flex-col items-center gap-2"
-                  @mouseenter="onRevenueEnter(row, $event)"
-                  @mousemove="onRevenueMove($event)"
-                  @mouseleave="onRevenueLeave"
-                >
-                  <div class="flex h-[220px] items-end gap-1.5">
-                    <div
-                      class="w-3 rounded-t-md bg-[#0066ff] md:w-4"
-                      :style="{ height: `${barHeight(row.revenue)}px` }"
-                    ></div>
-                    <div
-                      class="w-3 rounded-t-md bg-[#ff9900] md:w-4"
-                      :style="{ height: `${barHeight(row.expense)}px` }"
-                    ></div>
-                  </div>
-                  <span class="text-xs text-[#718096]">{{ row.month }}</span>
-                </div>
-              </div>
-
-              <div
-                v-if="hoveredRevenue"
-                class="pointer-events-none absolute z-20 min-w-[210px] rounded-xl border border-[#d7e0ec] bg-white px-4 py-3 text-base shadow-lg"
-                :style="{
-                  left: `${revenueTooltip.x}px`,
-                  top: `${revenueTooltip.y}px`,
-                }"
-              >
-                <p class="mb-2 text-black">{{ hoveredRevenue.month }}</p>
-                <p class="text-[#0066ff]">revenue : {{ hoveredRevenue.revenue }}</p>
-                <p class="text-[#ff9900]">expense : {{ hoveredRevenue.expense }}</p>
-                <p class="text-[#00aa44]">profit : {{ hoveredRevenue.profit }}</p>
-              </div>
-            </div>
-
-            <div class="mt-4 flex items-center justify-center gap-4 text-sm font-medium">
-              <span class="flex items-center gap-1.5 text-[#0066ff]"
-                ><i class="h-2.5 w-2.5 bg-[#0066ff]"></i>revenue</span
-              >
-              <span class="flex items-center gap-1.5 text-[#ff9900]"
-                ><i class="h-2.5 w-2.5 bg-[#ff9900]"></i>expense</span
-              >
-              <span class="flex items-center gap-1.5 text-[#00aa44]"
-                ><i class="h-0.5 w-4 bg-[#00aa44]"></i>profit</span
-              >
-            </div>
-          </div>
+        <section class="xl:col-span-2">
+          <AnalisisPendapatanLabaChart
+            :months="analysisMonths"
+            :revenue="analysisRevenue"
+            :net-profit="analysisNetProfit"
+            period-label="6 bulan terakhir"
+          />
         </section>
 
         <section class="rounded-xl border border-[#e8eef5] bg-white p-5 shadow-sm">
@@ -346,13 +301,8 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import { useFinancialOverview } from '../composables/useFinancialOverview';
-
-interface RevenueRow {
-  month: string;
-  revenue: number;
-  expense: number;
-  profit: number;
-}
+import { getCompanies } from 'src/shared/services/backendApiContract';
+import AnalisisPendapatanLabaChart from '../components/AnalisisPendapatanLabaChart.vue';
 
 interface ProjectionRow {
   month: string;
@@ -369,6 +319,35 @@ interface DistributionRow {
 const financialOverview = useFinancialOverview();
 const isRefreshing = ref(false);
 
+const companies = ref<string[]>([]);
+const companiesLoading = ref(false);
+const selectedCompanies = ref<string[]>([]);
+
+const companyOptions = computed(() =>
+  companies.value.map((name) => ({ label: name, value: name }))
+);
+
+async function loadCompanies() {
+  companiesLoading.value = true;
+  try {
+    companies.value = await getCompanies();
+    if (companies.value.length > 0 && selectedCompanies.value.length === 0) {
+      const first = companies.value[0];
+      if (first !== undefined) selectedCompanies.value = [first];
+    }
+  } finally {
+    companiesLoading.value = false;
+  }
+}
+
+function onCompanyChange(value: string[] | null) {
+  const list = value ?? [];
+  selectedCompanies.value = list;
+  if (list.length > 0) {
+    void financialOverview.refresh(list);
+  }
+}
+
 /** Progress 0–100 for piutang outstanding (placeholder: based on total) */
 const outstandingProgress = computed(() => {
   const total = financialOverview.totalPiutang.value;
@@ -384,21 +363,6 @@ const netMarginPercent = computed(() => {
   if (pendapatan <= 0) return '0';
   return (laba / pendapatan * 100).toFixed(1);
 });
-
-const revenueData: RevenueRow[] = [
-  { month: 'Jan', revenue: 45000, expense: 28000, profit: 17000 },
-  { month: 'Feb', revenue: 52000, expense: 31000, profit: 21000 },
-  { month: 'Mar', revenue: 48000, expense: 29000, profit: 19000 },
-  { month: 'Apr', revenue: 61000, expense: 35000, profit: 26000 },
-  { month: 'May', revenue: 55000, expense: 32000, profit: 23000 },
-  { month: 'Jun', revenue: 67000, expense: 38000, profit: 29000 },
-  { month: 'Jul', revenue: 72000, expense: 40000, profit: 32000 },
-  { month: 'Aug', revenue: 78000, expense: 43000, profit: 35000 },
-  { month: 'Sep', revenue: 85000, expense: 46000, profit: 39000 },
-  { month: 'Oct', revenue: 92000, expense: 50000, profit: 42000 },
-  { month: 'Nov', revenue: 98000, expense: 52000, profit: 46000 },
-  { month: 'Dec', revenue: 105000, expense: 55000, profit: 50000 },
-];
 
 const projectionData: ProjectionRow[] = [
   { month: 'Aug', value: 78000, projection: 78000 },
@@ -417,12 +381,8 @@ const distributionData: DistributionRow[] = [
   { name: '90+ days', value: 9, color: '#ff4444' },
 ];
 
-const revenueChartRef = ref<HTMLElement | null>(null);
 const donutChartRef = ref<HTMLElement | null>(null);
 const projectionChartRef = ref<HTMLElement | null>(null);
-
-const hoveredRevenue = ref<RevenueRow | null>(null);
-const revenueTooltip = ref({ x: 0, y: 0 });
 
 const hoveredDonut = ref<{ name: string; value: number } | null>(null);
 const donutTooltip = ref({ x: 0, y: 0 });
@@ -438,22 +398,22 @@ const customers = [
   { name: 'PT Graha Raya', amount: 420000, percentage: 12 },
 ];
 
-const maxRevenue = Math.max(...revenueData.map((item) => item.revenue));
-const maxProfit = Math.max(...revenueData.map((item) => item.profit));
 const maxProjection = Math.max(...projectionData.map((item) => item.projection));
 
-const barHeight = (value: number) => {
-  return Math.max(10, (value / maxRevenue) * 210);
-};
-
-const profitLinePoints = computed(() => {
-  return revenueData
-    .map((row, index) => {
-      const x = 40 + (index * 920) / (revenueData.length - 1);
-      const y = 220 - (row.profit / maxProfit) * 180;
-      return `${x},${y}`;
-    })
-    .join(' ');
+// Analisis Pendapatan & Laba: ikut filter entitas (financialOverview). Nilai dari API dalam Rupiah → chart pakai satuan ribu (72000 = 72 jt).
+const ANALYSIS_MONTHS_6 = ['Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const analysisMonths = ANALYSIS_MONTHS_6;
+const analysisRevenue = computed(() => {
+  const pend = financialOverview.totalPendapatan.value;
+  if (pend <= 0) return [0, 0, 0, 0, 0, 0];
+  const inThousands = pend / 1000;
+  return [0.7, 0.75, 0.8, 0.85, 0.9, 1].map((p) => Math.round(p * inThousands));
+});
+const analysisNetProfit = computed(() => {
+  const laba = financialOverview.labaBersih.value;
+  if (laba <= 0) return [0, 0, 0, 0, 0, 0];
+  const inThousands = laba / 1000;
+  return [0.7, 0.75, 0.8, 0.85, 0.9, 1].map((p) => Math.round(p * inThousands));
 });
 
 const projectionActualPoints = computed(() => {
@@ -497,24 +457,6 @@ const donutSegments = computed(() => {
   });
 });
 
-function onRevenueEnter(row: RevenueRow, event: MouseEvent) {
-  hoveredRevenue.value = row;
-  onRevenueMove(event);
-}
-
-function onRevenueMove(event: MouseEvent) {
-  if (!revenueChartRef.value) return;
-  const rect = revenueChartRef.value.getBoundingClientRect();
-  revenueTooltip.value = {
-    x: event.clientX - rect.left + 12,
-    y: event.clientY - rect.top - 12,
-  };
-}
-
-function onRevenueLeave() {
-  hoveredRevenue.value = null;
-}
-
 function onDonutEnter(name: string, value: number, event: MouseEvent) {
   hoveredDonut.value = { name, value };
   onDonutMove(event);
@@ -553,11 +495,15 @@ function onProjectionLeave() {
 
 const handleRefresh = async () => {
   isRefreshing.value = true;
-  await financialOverview.refresh();
+  const list = selectedCompanies.value;
+  await financialOverview.refresh(list.length > 0 ? list : undefined);
   isRefreshing.value = false;
 };
 
-onMounted(() => {
-  void financialOverview.refresh();
+onMounted(async () => {
+  await loadCompanies();
+  if (selectedCompanies.value.length > 0) {
+    void financialOverview.refresh(selectedCompanies.value);
+  }
 });
 </script>

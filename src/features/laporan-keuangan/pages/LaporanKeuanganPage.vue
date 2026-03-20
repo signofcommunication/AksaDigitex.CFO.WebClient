@@ -72,8 +72,8 @@
       />
     </div>
 
-    <!-- Filter Bar -->
-    <q-card class="q-mb-lg bg-white shadow-1 border-radius-8" flat bordered>
+    <!-- Filter Bar (margin bawah 16–24px ke konten di bawah, sejajar dengan card) -->
+    <q-card class="financial-report-filter bg-white shadow-1 border-radius-8" flat bordered>
       <q-card-section class="row items-center q-pa-sm q-col-gutter-md">
         <div class="col-auto row items-center">
           <span
@@ -83,13 +83,19 @@
           >
           <q-select
             v-model="entitas"
-            :options="['Semua Entitas', 'PT Aksa Digitex']"
+            :options="entitasOptions"
             dense
             outlined
             color="primary"
             class="filter-select"
             hide-dropdown-icon
             bg-color="white"
+            :loading="companiesLoading"
+            multiple
+            use-chips
+            emit-value
+            map-options
+            :label="entitasSelectLabel"
           >
             <template v-slot:append
               ><q-icon name="expand_more" color="grey-7" size="xs"
@@ -97,7 +103,24 @@
           </q-select>
         </div>
         <div class="col-auto">
+          <!-- Tab Neraca: satu tanggal (as of). Tab lain: range. -->
           <q-btn
+            v-if="activeTab === 'neraca'"
+            outline
+            color="grey-5"
+            icon="calendar_today"
+            :label="neracaDateButtonLabel"
+            class="text-dark bg-white border-radius-6"
+            size="sm"
+            no-caps
+            style="height: 36px"
+          >
+            <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+              <SingleDatePicker v-model="neracaAsOfDate" />
+            </q-popup-proxy>
+          </q-btn>
+          <q-btn
+            v-else
             outline
             color="grey-5"
             icon="calendar_today"
@@ -122,340 +145,59 @@
             size="sm"
             no-caps
             style="height: 36px"
+            :loading="(activeTab === 'laba-rugi' && labaRugiLoading) || (activeTab === 'neraca' && neracaLoading)"
+            :disable="(activeTab === 'laba-rugi' && labaRugiLoading) || (activeTab === 'neraca' && neracaLoading)"
+            @click="applyFilters"
           />
         </div>
       </q-card-section>
     </q-card>
 
     <!-- Content Neraca -->
-    <q-card v-if="activeTab === 'neraca'" class="bg-white shadow-1 border-radius-8" flat bordered>
-      <q-card-section class="q-pa-md border-bottom">
-        <div class="text-subtitle1 text-dark text-weight-bold">Neraca — Balance Sheet</div>
-        <div class="text-caption text-grey-7">Per 31 Desember 2024 - Semua Entitas</div>
-      </q-card-section>
-      <q-card-section class="q-pa-lg">
-        <div class="row q-col-gutter-xl">
-          <div class="col-12 col-md-6">
-            <div
-              class="q-mb-lg row items-center q-pa-sm rounded-borders bg-blue-1 text-blue-9 border-blue-2"
-              style="border: 1px solid"
-            >
-              <q-icon name="account_balance_wallet" class="q-mr-sm" size="xs" />
-              <span class="text-weight-bold text-caption">ASET</span>
-            </div>
-            <div
-              class="text-caption text-grey-7 text-weight-bold q-mb-sm text-uppercase"
-              style="letter-spacing: 1px"
-            >
-              Aset Lancar
-            </div>
-            <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Kas & Setara Kas</span><span class="text-weight-medium">Rp 1.240.000.000</span>
-            </div>
-            <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Piutang Usaha</span><span class="text-weight-medium">Rp 4.200.000.000</span>
-            </div>
-            <div class="row justify-between q-pa-sm bg-blue-1 rounded-borders q-mb-xl q-mt-md">
-              <span class="text-primary text-weight-bold text-body2">Total Aset Lancar</span
-              ><span class="text-primary text-weight-bold text-body2">Rp 8.190.000.000</span>
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div
-              class="q-mb-lg row items-center q-pa-sm rounded-borders bg-teal-1 text-teal-9 border-teal-2"
-              style="border: 1px solid"
-            >
-              <q-icon name="security" class="q-mr-sm" size="xs" />
-              <span class="text-weight-bold text-caption">LIABILITAS & EKUITAS</span>
-            </div>
-            <div
-              class="text-caption text-grey-7 text-weight-bold q-mb-sm text-uppercase"
-              style="letter-spacing: 1px"
-            >
-              Liabilitas Jangka Pendek
-            </div>
-            <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Utang Usaha</span><span class="text-weight-medium">Rp 1.800.000.000</span>
-            </div>
-            <div class="row justify-between q-pa-sm bg-orange-1 rounded-borders q-mb-xl q-mt-md">
-              <span class="text-orange-9 text-weight-bold text-body2">Total Liab. Pendek</span
-              ><span class="text-orange-9 text-weight-bold text-body2">Rp 2.530.000.000</span>
-            </div>
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
+    <NeracaSection
+      v-if="activeTab === 'neraca'"
+      :header-text="neracaHeaderText"
+      :kas-dan-setara-kas="neracaKasDanSetaraKas"
+      :piutang-usaha="neracaPiutangUsaha"
+      :total-aset-lancar="neracaTotalAsetLancar"
+      :utang-usaha="neracaUtangUsaha"
+      :total-liab-pendek="neracaTotalLiabPendek"
+      :format-idr-number="formatIdrNumber"
+    />
 
     <!-- Content Laba Rugi -->
-    <div v-else-if="activeTab === 'laba-rugi'">
-      <div class="row q-col-gutter-lg">
-        <div class="col-12 col-md-8">
-          <q-card class="bg-white shadow-1 border-radius-8 q-mb-md" flat bordered>
-            <q-card-section class="q-pa-lg">
-              <div class="q-mb-xl">
-                <div class="text-subtitle1 text-dark text-weight-bold">Laporan Laba Rugi</div>
-                <div class="text-caption text-grey-7">Periode 1 Jan – 31 Des 2024</div>
-              </div>
-              <div
-                class="text-caption text-grey-7 text-weight-bold q-mb-md text-uppercase"
-                style="letter-spacing: 1px"
-              >
-                Pendapatan
-              </div>
-              <div class="row justify-between text-body2 text-dark q-mb-sm">
-                <span>Penjualan Bersih</span
-                ><span class="text-weight-medium">Rp 29.973.099.497</span>
-              </div>
-              <div
-                class="row justify-between q-pa-sm bg-grey-2 rounded-borders q-mb-xl items-center"
-              >
-                <span class="text-dark text-weight-bold text-body2">Total Pendapatan</span
-                ><span class="text-dark text-weight-bold text-body2">Rp 29.973.099.497</span>
-              </div>
-              <div
-                class="text-caption text-grey-7 text-weight-bold q-mb-md text-uppercase"
-                style="letter-spacing: 1px"
-              >
-                Beban Operasional
-              </div>
-              <div class="row justify-between text-body2 text-dark q-mb-sm">
-                <span>HPP</span><span class="text-negative">(Rp 13.378.852.768)</span>
-              </div>
-              <div
-                class="row justify-between q-pa-sm bg-grey-2 rounded-borders q-mb-xl items-center"
-              >
-                <span class="text-dark text-weight-bold text-body2">Total Beban</span
-                ><span class="text-negative text-weight-bold text-body2">(Rp 13.378.852.768)</span>
-              </div>
-              <div
-                class="row justify-between q-pa-md bg-teal-1 rounded-borders items-center"
-                style="border: 1px solid rgba(20, 184, 166, 0.2)"
-              >
-                <div class="row items-center">
-                  <q-icon name="add" color="positive" size="xs" class="q-mr-sm" /><span
-                    class="text-positive text-weight-bold text-subtitle2 text-uppercase"
-                    style="letter-spacing: 1px"
-                    >Laba Bersih</span
-                  >
-                </div>
-                <span class="text-positive text-weight-bold text-subtitle1">Rp 29.973.999.497</span>
-              </div>
-            </q-card-section>
-          </q-card>
-          <div class="row q-col-gutter-md">
-            <div class="col-4">
-              <q-card class="bg-white shadow-1 border-radius-8" flat bordered
-                ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-dark text-weight-bold text-subtitle1">24.6%</div>
-                  <div class="text-grey-7 text-caption q-mt-xs">Gross Margin</div></q-card-section
-                ></q-card
-              >
-            </div>
-            <div class="col-4">
-              <q-card
-                class="bg-teal-1 shadow-1 border-radius-8 border-teal-2"
-                style="border: 1px solid"
-                flat
-                ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-teal-9 text-weight-bold text-subtitle1">24.6%</div>
-                  <div class="text-teal-8 text-caption q-mt-xs">Net Margin</div></q-card-section
-                ></q-card
-              >
-            </div>
-            <div class="col-4">
-              <q-card
-                class="bg-blue-1 shadow-1 border-radius-8 border-blue-2"
-                style="border: 1px solid"
-                flat
-                ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-blue-9 text-weight-bold text-subtitle1">+15.2%</div>
-                  <div class="text-blue-8 text-caption q-mt-xs">YoY Growth</div></q-card-section
-                ></q-card
-              >
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-white shadow-1 border-radius-8 h-full"
-            flat
-            bordered
-            style="height: 100%"
-          >
-            <q-card-section class="q-pa-lg">
-              <div
-                class="text-caption text-grey-7 text-weight-bold q-mb-xl text-uppercase"
-                style="letter-spacing: 1px"
-              >
-                Komposisi
-              </div>
-              <div class="flex flex-center q-mb-xl q-mt-lg" style="height: 220px">
-                <VueApexCharts
-                  type="donut"
-                  width="280"
-                  height="220"
-                  :options="donutOptions"
-                  :series="donutSeries"
-                />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-    </div>
+    <LabaRugiSection
+      v-else-if="activeTab === 'laba-rugi'"
+      :laba-rugi-loading="labaRugiLoading"
+      :laba-rugi-error="labaRugiError"
+      :laba-rugi-fetched="labaRugiFetched"
+      :multi-companies="labaRugiMultiData?.companies ?? []"
+      :compare-dialog-open="compareDialogOpen"
+      :compare-companies-data="labaRugiMultiData?.companies ?? []"
+      :compare-period-label="labaRugiPeriodLabel"
+      :get-laba-bersih-for-company="getLabaBersihForCompany"
+      :format-idr-laba-bersih="formatIdrLabaBersih"
+      :format-amount="formatAmount"
+      :laba-rugi-period-label="labaRugiPeriodLabel"
+      :laba-rugi-entitas-label="labaRugiEntitasLabel"
+      :laba-rugi-display-lines="labaRugiDisplayLines"
+      :laba-bersih-value="labaBersihValue"
+      :laba-rugi-gross-margin-percent="labaRugiGrossMarginPercent"
+      :laba-rugi-net-margin-percent="labaRugiNetMarginPercent"
+      :donut-options="donutOptions"
+      :donut-series="donutSeries"
+      @update:compareDialogOpen="compareDialogOpen = $event"
+    />
 
     <!-- Content Arus Kas -->
-    <div v-else-if="activeTab === 'arus-kas'">
-      <!-- Arus Kas KPI Cards -->
-      <div class="row q-col-gutter-md q-mb-lg">
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-teal-1 border-radius-8 border-teal-2 shadow-1"
-            style="border: 1px solid"
-            flat
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-teal-8 text-caption text-weight-bold text-uppercase q-mb-xs">
-                Total Cash In
-              </div>
-              <div class="text-teal-10 text-h5 text-weight-bold q-mb-xs">Rp 9.350.000.000</div>
-              <div class="text-teal-7 text-caption flex items-center">
-                <q-icon name="arrow_upward" size="xs" class="q-mr-xs" /> 14.2% vs periode lalu
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-red-1 border-radius-8 border-red-2 shadow-1"
-            style="border: 1px solid"
-            flat
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-red-8 text-caption text-weight-bold text-uppercase q-mb-xs">
-                Total Cash Out
-              </div>
-              <div class="text-red-10 text-h5 text-weight-bold q-mb-xs">Rp 7.050.000.000</div>
-              <div class="text-red-7 text-caption flex items-center">
-                <q-icon name="arrow_downward" size="xs" class="q-mr-xs" /> 8.1% vs periode lalu
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-blue-1 border-radius-8 border-blue-2 shadow-1"
-            style="border: 1px solid"
-            flat
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-blue-8 text-caption text-weight-bold text-uppercase q-mb-xs">
-                Net Cash Flow
-              </div>
-              <div class="text-blue-10 text-h5 text-weight-bold q-mb-xs">Rp 2.300.000.000</div>
-              <div class="text-blue-7 text-caption flex items-center">
-                <q-icon name="arrow_upward" size="xs" class="q-mr-xs" /> 21.4% vs periode lalu
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Arus Kas Chart -->
-      <q-card class="bg-white shadow-1 border-radius-8 q-mb-lg" flat bordered>
-        <q-card-section class="q-pa-md border-bottom">
-          <div
-            class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
-            style="letter-spacing: 1px"
-          >
-            Grafik Arus Kas Bulanan
-          </div>
-        </q-card-section>
-        <q-card-section class="q-pa-lg">
-          <div class="relative w-full mt-4">
-            <VueApexCharts
-              type="line"
-              height="300"
-              :options="cashFlowOptions"
-              :series="cashFlowSeries"
-            />
-          </div>
-
-          <!-- Legend -->
-          <div class="row justify-center q-gutter-x-lg q-mt-md text-caption text-grey-8">
-            <div class="flex items-center">
-              <div
-                class="q-mr-sm"
-                style="width: 12px; height: 12px; background-color: #10b981; border-radius: 2px"
-              ></div>
-              Cash In
-            </div>
-            <div class="flex items-center">
-              <div
-                class="q-mr-sm"
-                style="width: 12px; height: 12px; background-color: #ef4444; border-radius: 2px"
-              ></div>
-              Cash Out
-            </div>
-            <div class="flex items-center">
-              <div
-                class="q-mr-sm"
-                style="width: 12px; height: 4px; background-color: #3b82f6"
-              ></div>
-              <circle cx="6" cy="2" r="4" fill="#3b82f6" class="q-mr-sm" /> Net
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-
-      <!-- Detail Table -->
-      <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
-        <q-card-section class="q-pa-md border-bottom">
-          <div
-            class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
-            style="letter-spacing: 1px"
-          >
-            Detail Arus Kas Bulanan
-          </div>
-        </q-card-section>
-        <q-table
-          :rows="cashFlowTableData"
-          :columns="cashFlowColumns"
-          row-key="month"
-          flat
-          hide-bottom
-          :pagination="{ rowsPerPage: 12 }"
-          class="text-body2 bg-white"
-          table-header-class="text-grey-8 bg-grey-1"
-        >
-          <template v-slot:body-cell-in="props">
-            <q-td :props="props" class="text-teal-7 text-weight-medium">{{
-              formatCurrency(props.row.in)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-out="props">
-            <q-td :props="props" class="text-red-7 text-weight-medium">{{
-              formatCurrency(props.row.out)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-net="props">
-            <q-td :props="props" class="text-blue-7 text-weight-bold">{{
-              formatCurrency(props.row.net)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-cumulative="props">
-            <q-td :props="props" class="text-teal-9 text-weight-bold">{{
-              formatCurrency(props.row.cumulative)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-month="props">
-            <q-td :props="props" class="text-dark text-weight-bold"
-              >{{ props.row.month }} 2024</q-td
-            >
-          </template>
-        </q-table>
-      </q-card>
-    </div>
+    <ArusKasSection
+      v-else-if="activeTab === 'arus-kas'"
+      :cash-flow-options="cashFlowOptions"
+      :cash-flow-series="cashFlowSeries"
+      :cash-flow-table-data="cashFlowTableData"
+      :cash-flow-columns="cashFlowColumns"
+      :format-currency="formatCurrency"
+    />
 
     <!-- Export PDF Dialog -->
     <q-dialog v-model="isExportPdfDialogOpen">
@@ -505,7 +247,7 @@
               <div class="row items-center q-mb-sm">
                 <div class="col-4 text-grey-6 text-caption">Entitas</div>
                 <div class="col-8 text-right text-grey-3 text-caption text-weight-medium">
-                  {{ entitas }}
+                  {{ entitas.length ? entitas.join(', ') : '—' }}
                 </div>
               </div>
               <div class="row items-center q-mb-sm">
@@ -560,15 +302,362 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { date, useQuasar } from 'quasar';
-import VueApexCharts from 'vue3-apexcharts';
 import DateRangePicker from '@/components/DateRangePicker.vue';
+import SingleDatePicker from '@/components/SingleDatePicker.vue';
 import AppButton from '@/shared/components/AppButton.vue';
+import {
+  getCompanies,
+  getLabaRugi,
+  getLabaRugiMulti,
+  getNeraca,
+  type PlAccountRow,
+  type LabaRugiMultiResponse,
+  type LabaRugiCompanyItem,
+  type BsAccountRow,
+} from '@/shared/services/backendApiContract';
+import NeracaSection from '../components/sections/NeracaSection.vue';
+import LabaRugiSection from '../components/sections/LabaRugiSection.vue';
+import ArusKasSection from '../components/sections/ArusKasSection.vue';
 
 const $q = useQuasar();
 
 const isExportPdfDialogOpen = ref(false);
+
+// Entitas (companies) for filter – multi-select untuk tab Laba Rugi
+const companies = ref<string[]>([]);
+const companiesLoading = ref(false);
+const entitas = ref<string[]>([]);
+const entitasOptions = computed(() =>
+  companies.value.map((c) => ({ label: c, value: c }))
+);
+
+const entitasSelectLabel = computed(() => {
+  // Supaya label tidak numpang / mepet dengan chips saat multi-select sudah dipilih
+  if (entitas.value.length > 0) return undefined;
+  if (activeTab.value === 'laba-rugi') return 'Entitas (bisa pilih 2+ untuk banding)';
+  return 'Entitas';
+});
+
+// Laba Rugi (P&L) – single entity
+const labaRugiLoading = ref(false);
+const labaRugiError = ref('');
+const labaRugiFetched = ref(false);
+const labaRugiData = ref<PlAccountRow[]>([]);
+// Multi-entity (perbandingan)
+const labaRugiMultiData = ref<LabaRugiMultiResponse | null>(null);
+const compareDialogOpen = ref(false);
+
+// Neraca (Balance Sheet) – filter satu tanggal (as of), bukan range
+const neracaAsOfDate = ref<string | null>(date.formatDate(new Date(), 'YYYY-MM-DD'));
+const neracaLoading = ref(false);
+const neracaError = ref('');
+const neracaData = ref<BsAccountRow[]>([]);
+
+const neracaKasDanSetaraKas = computed(() =>
+  neracaData.value
+    .filter((r) => r.accountType === 'CASH_BANK' && !r.isParent)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+);
+const neracaPiutangUsaha = computed(() =>
+  neracaData.value
+    .filter((r) => r.accountType === 'ACCOUNT_RECEIVABLE' && !r.isParent)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+);
+const neracaUtangUsaha = computed(() =>
+  neracaData.value
+    .filter((r) => r.accountType === 'ACCOUNT_PAYABLE' && !r.isParent)
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+);
+
+const neracaTotalAsetLancar = computed(
+  () => neracaKasDanSetaraKas.value + neracaPiutangUsaha.value
+);
+const neracaTotalLiabPendek = computed(() => neracaUtangUsaha.value);
+
+const neracaDateButtonLabel = computed(() =>
+  neracaAsOfDate.value ? date.formatDate(neracaAsOfDate.value, 'D MMM YYYY') : 'Pilih tanggal'
+);
+
+const neracaHeaderText = computed(() => {
+  const asOfLabel = neracaAsOfDate.value
+    ? date.formatDate(neracaAsOfDate.value, 'D MMM YYYY')
+    : 'Pilih tanggal';
+  const e = entitas.value;
+  const entitasLabel = !e || e.length === 0 ? 'Semua Entitas' : e.length === 1 ? e[0] : e.join(', ');
+  return `Per ${asOfLabel} - ${entitasLabel}`;
+});
+
+function formatIdrNumber(value: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+const PARENT_ORDER = ['4101', '5100', '6100', '6200', '6300', '7100', '8100', '8200', '8300'];
+
+function getParentRows(data: PlAccountRow[]): PlAccountRow[] {
+  return data.filter((r) => r.isParent === true);
+}
+
+function getChildren(data: PlAccountRow[], parentNo: string): PlAccountRow[] {
+  return data.filter((r) => r.isParent === false && r.parentNo === parentNo);
+}
+
+const labaRugiTotalPendapatan = computed(() => {
+  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '4101');
+  return Number(parent?.amount) || 0;
+});
+const labaRugiTotalHpp = computed(() => {
+  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '5100');
+  return Number(parent?.amount) || 0;
+});
+const labaRugiTotalBebanOp = computed(() => {
+  return ['6100', '6200', '6300'].reduce((sum, no) => {
+    const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === no);
+    return sum + (Number(parent?.amount) || 0);
+  }, 0);
+});
+const labaRugiTotalPendapatanLain = computed(() => {
+  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '7100');
+  return Number(parent?.amount) || 0;
+});
+const labaRugiTotalBebanLain = computed(() => {
+  return ['8100', '8200', '8300'].reduce((sum, no) => {
+    const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === no);
+    return sum + (Number(parent?.amount) || 0);
+  }, 0);
+});
+
+const labaKotorValue = computed(() => labaRugiTotalPendapatan.value - labaRugiTotalHpp.value);
+const labaUsahaValue = computed(() => labaKotorValue.value - labaRugiTotalBebanOp.value);
+const labaBersihValue = computed(
+  () => labaUsahaValue.value + labaRugiTotalPendapatanLain.value - labaRugiTotalBebanLain.value
+);
+
+type DisplayLine =
+  | { kind: 'row'; row: PlAccountRow }
+  | {
+      kind: 'subtotal';
+      label: string;
+      amount: number;
+      formattedAmount: string;
+      subtotalClass: string;
+      subtotalLabelClass: string;
+      subtotalAmountClass: string;
+    };
+
+const labaRugiDisplayLines = computed((): DisplayLine[] => {
+  const data = labaRugiData.value;
+  if (data.length === 0) return [];
+  const lines: DisplayLine[] = [];
+  const parents = getParentRows(data);
+  for (const parentNo of PARENT_ORDER) {
+    const parent = parents.find((p) => p.accountNo === parentNo);
+    if (!parent) continue;
+    lines.push({ kind: 'row', row: parent });
+    const children = getChildren(data, parentNo);
+    for (const c of children) {
+      lines.push({ kind: 'row', row: c });
+    }
+                if (parentNo === '5100') {
+      const amt = labaKotorValue.value;
+      lines.push({
+        kind: 'subtotal',
+        label: 'Laba Kotor',
+        amount: amt,
+        formattedAmount: formatAmount(amt),
+        subtotalClass: 'bg-grey-2',
+        subtotalLabelClass: 'text-dark',
+        subtotalAmountClass: amt < 0 ? 'text-negative' : 'text-dark',
+      });
+    }
+    if (parentNo === '6300') {
+      const amt = labaUsahaValue.value;
+      lines.push({
+        kind: 'subtotal',
+        label: 'Laba Usaha',
+        amount: amt,
+        formattedAmount: formatAmount(amt),
+        subtotalClass: 'bg-grey-2',
+        subtotalLabelClass: 'text-dark',
+        subtotalAmountClass: amt < 0 ? 'text-negative' : 'text-dark',
+      });
+    }
+  }
+  return lines;
+});
+
+const labaRugiEntitasLabel = computed(() => {
+  const e = entitas.value;
+  if (!e || e.length === 0) return 'Pilih entitas';
+  if (e.length === 1) return e[0] ?? 'Pilih entitas';
+  return e.join(', ');
+});
+
+const labaRugiPeriodLabel = computed(() => {
+  if (!dateRange.value || typeof dateRange.value === 'string') return 'Pilih periode';
+  const { from, to } = dateRange.value;
+  if (from && to)
+    return `${date.formatDate(from, 'D MMM YYYY')} – ${date.formatDate(to, 'D MMM YYYY')}`;
+  return 'Pilih periode';
+});
+
+function getLabaBersihForCompany(comp: LabaRugiCompanyItem): number {
+  const data = comp.data || [];
+  const amount = (no: string) => {
+    const p = data.find((r) => r.isParent && r.accountNo === no);
+    return Number(p?.amount) || 0;
+  };
+  const pend = amount('4101');
+  const hpp = amount('5100');
+  const bebanOp = amount('6100') + amount('6200') + amount('6300');
+  const pendLain = amount('7100');
+  const bebanLain = amount('8100') + amount('8200') + amount('8300');
+  return pend - hpp - bebanOp + pendLain - bebanLain;
+}
+const labaRugiGrossMarginPercent = computed(() => {
+  const total = labaRugiTotalPendapatan.value;
+  if (total <= 0) return '0';
+  return ((labaKotorValue.value / total) * 100).toFixed(1);
+});
+const labaRugiNetMarginPercent = computed(() => {
+  const total = labaRugiTotalPendapatan.value;
+  if (total <= 0) return '0';
+  return ((labaBersihValue.value / total) * 100).toFixed(1);
+});
+
+function formatAmount(value: number): string {
+  const abs = Math.abs(value);
+  const formatted = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+    .format(abs)
+    .replace(/,/g, '.');
+  return value < 0 ? `(Rp ${formatted})` : `Rp ${formatted}`;
+}
+
+function formatIdr(value: number): string {
+  const formatted = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value).replace(/,/g, '.');
+  return `Rp ${formatted}`;
+}
+
+function formatIdrLabaBersih(value: number): string {
+  const formatted = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.abs(value)).replace(/,/g, '.');
+  return value < 0 ? `(Rp ${formatted})` : `Rp ${formatted}`;
+}
+
+async function loadCompanies() {
+  companiesLoading.value = true;
+  try {
+    companies.value = await getCompanies();
+  } finally {
+    companiesLoading.value = false;
+  }
+}
+
+async function applyFilters() {
+  const range = dateRange.value;
+  const from = typeof range === 'string' ? range : range?.from;
+  const to = typeof range === 'string' ? range : range?.to;
+
+  if (activeTab.value === 'neraca') {
+    const asOf = neracaAsOfDate.value;
+    if (!asOf) {
+      $q.notify({ type: 'warning', message: 'Pilih tanggal Neraca.', position: 'bottom' });
+      return;
+    }
+    neracaLoading.value = true;
+    neracaError.value = '';
+    try {
+      const sel = entitas.value;
+      const companyNeraca = sel.length === 1 ? sel[0] : undefined;
+      const res = await getNeraca(asOf, companyNeraca);
+      if (res.s === false) {
+        neracaError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat Neraca';
+        neracaData.value = [];
+        return;
+      }
+      const d = res.d;
+      if (Array.isArray(d)) {
+        neracaData.value = d;
+      } else if (d && typeof d === 'object' && !Array.isArray(d)) {
+        const container = d as { rows?: unknown; list?: unknown; data?: unknown };
+        const arr = container.rows ?? container.list ?? container.data;
+        neracaData.value = Array.isArray(arr) ? (arr as BsAccountRow[]) : [];
+      } else {
+        neracaData.value = [];
+      }
+    } catch (e) {
+      neracaError.value = e instanceof Error ? e.message : 'Gagal memuat Neraca';
+      neracaData.value = [];
+    } finally {
+      neracaLoading.value = false;
+    }
+    return;
+  }
+
+  if (activeTab.value !== 'laba-rugi') return;
+  if (!from || !to) {
+    $q.notify({ type: 'warning', message: 'Pilih periode tanggal.', position: 'bottom' });
+    return;
+  }
+  const selected = entitas.value;
+  if (!selected || selected.length === 0) {
+    $q.notify({ type: 'warning', message: 'Pilih minimal 1 entitas.', position: 'bottom' });
+    return;
+  }
+  labaRugiLoading.value = true;
+  labaRugiError.value = '';
+  labaRugiFetched.value = true;
+  labaRugiMultiData.value = null;
+  labaRugiData.value = [];
+  try {
+    if (selected.length >= 2) {
+      const res = await getLabaRugiMulti(from, to, selected);
+      if (res.s === false) {
+        labaRugiError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat data';
+        return;
+      }
+      if (res.companies && res.companies.length > 0) {
+        labaRugiMultiData.value = res;
+      }
+    } else {
+      const res = await getLabaRugi(from, to, selected[0]);
+      if (res.s === false) {
+        labaRugiError.value = typeof res.d === 'string' ? res.d : 'Gagal memuat data';
+        return;
+      }
+      const d = res.d;
+      if (Array.isArray(d)) {
+        labaRugiData.value = d;
+      } else if (d && typeof d === 'object' && !Array.isArray(d)) {
+        const container = d as { rows?: unknown; list?: unknown; data?: unknown };
+        const arr = container.rows ?? container.list ?? container.data;
+        labaRugiData.value = Array.isArray(arr) ? (arr as PlAccountRow[]) : [];
+      }
+    }
+  } catch (e) {
+    labaRugiError.value = e instanceof Error ? e.message : 'Gagal memuat laporan laba rugi';
+  } finally {
+    labaRugiLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  void loadCompanies();
+});
 
 const exportToExcel = () => {
   $q.notify({
@@ -592,7 +681,6 @@ const handlePrintPdfBtn = () => {
   });
 };
 
-const entitas = ref('Semua Entitas');
 const activeTab = ref('arus-kas');
 
 const dateRange = ref<{ from: string; to: string } | string>({
@@ -611,23 +699,42 @@ const dateButtonLabel = computed(() => {
 
 // -- ApexCharts Configuration --
 
-// Komposisi Donut Chart
-const donutSeries = ref([210, 90, 30, 70, 20, 20]);
-const donutOptions = ref({
+// Komposisi Donut Chart (berdasarkan komponen utama Laba Rugi)
+// Slice: HPP (5100), Beban Operasional (6100+6200+6300), Beban Lain-lain (8100+8200+8300)
+const donutLabels = computed(() => {
+  const labels: string[] = [];
+  if (Math.abs(labaRugiTotalHpp.value) > 0) labels.push('HPP');
+  if (Math.abs(labaRugiTotalBebanOp.value) > 0) labels.push('Beban Operasional');
+  if (Math.abs(labaRugiTotalBebanLain.value) > 0) labels.push('Beban Lain-lain');
+  return labels;
+});
+
+const donutSeries = computed(() => {
+  const series: number[] = [];
+  if (Math.abs(labaRugiTotalHpp.value) > 0) series.push(Math.abs(labaRugiTotalHpp.value));
+  if (Math.abs(labaRugiTotalBebanOp.value) > 0) series.push(Math.abs(labaRugiTotalBebanOp.value));
+  if (Math.abs(labaRugiTotalBebanLain.value) > 0)
+    series.push(Math.abs(labaRugiTotalBebanLain.value));
+  return series;
+});
+
+const donutOptions = computed(() => ({
   chart: { type: 'donut' as const, fontFamily: 'Inter, sans-serif' },
-  labels: ['HPP', 'Gaji', 'Sewa', 'Penyusutan', 'Pemasaran', 'Lainnya'],
-  colors: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#64748b'],
+  labels: donutLabels.value,
+  colors: ['#3b82f6', '#10b981', '#ef4444'],
   plotOptions: {
     pie: { donut: { size: '65%' } },
   },
   dataLabels: { enabled: false },
-  legend: { show: false }, // Using custom legend
+  legend: { show: false }, // Using custom legend (bisa ditambahkan nanti)
   stroke: { show: false },
   tooltip: {
     theme: 'light',
-    y: { formatter: (val: number) => `Rp ${val} Juta` },
+    y: {
+      formatter: (val: number) => formatIdr(val),
+    },
   },
-});
+}));
 
 // Arus Kas Mixed Chart
 const cashFlowSeries = ref([
@@ -753,6 +860,15 @@ const cashFlowColumns = [
 </script>
 
 <style scoped>
+.financial-report-page {
+  box-sizing: border-box;
+}
+
+/* Jarak vertikal filter → konten: 16–24px, sama rata dengan padding halaman */
+.financial-report-filter {
+  margin-bottom: clamp(16px, 2vw, 24px);
+}
+
 .border-radius-8 {
   border-radius: 8px !important;
 }
@@ -772,14 +888,36 @@ const cashFlowColumns = [
   border-color: #fecaca !important;
 }
 .filter-select :deep(.q-field__control) {
-  height: 36px;
   min-height: 36px;
   border-radius: 6px;
+  height: auto; /* allow chips to wrap / fit properly */
+  align-items: flex-start;
 }
 .filter-select :deep(.q-field__marginal) {
-  height: 36px;
+  height: auto;
+  min-height: 36px;
+}
+.filter-select :deep(.q-select__chips) {
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 4px 0;
+  align-items: center;
+}
+.filter-select :deep(.q-chip) {
+  margin: 0; /* spacing handled by q-select__chips gap */
 }
 .q-table__container {
   border-radius: 0 0 8px 8px;
+}
+
+.compare-summary-row {
+  position: relative;
+  z-index: 2;
+}
+
+.compare-cards-row {
+  position: relative;
+  z-index: 1;
+  margin-top: 2px; /* small visual separation from the compare-summary-row */
 }
 </style>

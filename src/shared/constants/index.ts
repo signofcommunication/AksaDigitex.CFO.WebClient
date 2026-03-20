@@ -2,6 +2,8 @@
  * Application Constants
  */
 
+import { getEffectiveBackendBaseUrl } from '@/shared/services/backendApiContract';
+
 export const APP_NAME = 'AksaDigitex CFO';
 export const APP_VERSION = '0.0.1';
 
@@ -45,10 +47,13 @@ export const CURRENCY = {
 } as const;
 
 /**
- * API Configuration
+ * API Configuration (satu sumber kebenaran dengan axios / backendClient;
+ * `BASE_URL` memperhitungkan override admin di browser jika ada)
  */
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  get BASE_URL(): string {
+    return getEffectiveBackendBaseUrl();
+  },
   TIMEOUT: 30000,
   RETRY_COUNT: 3,
 } as const;

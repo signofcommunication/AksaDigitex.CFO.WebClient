@@ -79,7 +79,7 @@
             </q-popup-proxy>
           </q-btn>
         </div>
-        
+
         <div class="col-auto row items-center">
           <span
             class="text-grey-7 q-mr-sm text-caption text-weight-bold text-uppercase"
@@ -95,14 +95,14 @@
             class="filter-select"
             hide-dropdown-icon
             bg-color="white"
-            style="width: 120px;"
+            style="width: 120px"
           >
             <template v-slot:append
               ><q-icon name="expand_more" color="grey-7" size="xs"
             /></template>
           </q-select>
         </div>
-        
+
         <div class="col-auto">
           <q-btn
             color="primary"
@@ -169,9 +169,9 @@
     <!-- Charts Section -->
     <div class="row q-col-gutter-lg q-mb-lg">
       <div class="col-12 col-md-7">
-         <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
+        <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
           <q-card-section class="q-pa-md border-bottom">
-             <div
+            <div
               class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
               style="letter-spacing: 1px"
             >
@@ -179,19 +179,14 @@
             </div>
           </q-card-section>
           <q-card-section class="q-pa-lg">
-             <VueApexCharts
-                type="bar"
-                height="240"
-                :options="barOptions"
-                :series="barSeries"
-              />
+            <VueApexCharts type="bar" height="240" :options="barOptions" :series="barSeries" />
           </q-card-section>
         </q-card>
       </div>
       <div class="col-12 col-md-5">
-         <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
+        <q-card class="bg-white shadow-1 border-radius-8 h-full" flat bordered style="height: 100%">
           <q-card-section class="q-pa-md border-bottom">
-             <div
+            <div
               class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
               style="letter-spacing: 1px"
             >
@@ -199,12 +194,12 @@
             </div>
           </q-card-section>
           <q-card-section class="q-pa-lg">
-              <VueApexCharts
-                type="donut"
-                height="220"
-                :options="donutOptions"
-                :series="donutSeries"
-              />
+            <VueApexCharts
+              type="donut"
+              height="220"
+              :options="donutOptions"
+              :series="donutSeries"
+            />
           </q-card-section>
         </q-card>
       </div>
@@ -232,7 +227,7 @@
           </template>
         </q-input>
       </q-card-section>
-      
+
       <q-table
         v-model:pagination="pagination"
         :rows="filteredTableData"
@@ -247,14 +242,24 @@
       >
         <template v-slot:body-cell-no_so="props">
           <q-td :props="props">
-            <q-badge outline color="primary" class="bg-blue-1 text-weight-medium q-pa-xs border-radius-6" style="letter-spacing: 0.5px;">
+            <q-badge
+              outline
+              color="primary"
+              class="bg-blue-1 text-weight-medium q-pa-xs border-radius-6"
+              style="letter-spacing: 0.5px"
+            >
               {{ props.row.no_so }}
             </q-badge>
           </q-td>
         </template>
         <template v-slot:body-cell-entitas="props">
           <q-td :props="props">
-            <q-badge outline color="grey-7" class="bg-grey-2 text-weight-medium q-pa-xs border-radius-6" style="letter-spacing: 0.5px;">
+            <q-badge
+              outline
+              color="grey-7"
+              class="bg-grey-2 text-weight-medium q-pa-xs border-radius-6"
+              style="letter-spacing: 0.5px"
+            >
               {{ props.row.entitas }}
             </q-badge>
           </q-td>
@@ -274,19 +279,19 @@
             {{ formatCurrency(props.row.sisa) }}
           </q-td>
         </template>
-        
+
         <!-- Status Slot -->
         <template v-slot:body-cell-status="props">
-            <q-td :props="props" class="text-center">
-              <q-badge
-                outline
-                :color="getStatusColor(props.row.status)"
-                class="q-px-sm q-py-xs bg-white text-weight-bold"
-                style="border-radius: 6px; letter-spacing: 0.5px"
-              >
-                  {{ props.row.status }}
-              </q-badge>
-            </q-td>
+          <q-td :props="props" class="text-center">
+            <q-badge
+              outline
+              :color="getStatusColor(props.row.status)"
+              class="q-px-sm q-py-xs bg-white text-weight-bold"
+              style="border-radius: 6px; letter-spacing: 0.5px"
+            >
+              {{ props.row.status }}
+            </q-badge>
+          </q-td>
         </template>
       </q-table>
     </q-card>
@@ -634,8 +639,20 @@ const tableColumns = [
   { name: 'customer', label: 'CUSTOMER', field: 'name', align: 'left' as const, sortable: true },
   { name: 'entitas', label: 'ENTITAS', field: 'entitas', align: 'left' as const, sortable: true },
   { name: 'tanggal', label: 'TANGGAL', field: 'tanggal', align: 'left' as const, sortable: true },
-  { name: 'nilai_so', label: 'NILAI SO', field: 'nilai_so', align: 'left' as const, sortable: true },
-  { name: 'terkirim', label: 'TERKIRIM', field: 'terkirim', align: 'left' as const, sortable: true },
+  {
+    name: 'nilai_so',
+    label: 'NILAI SO',
+    field: 'nilai_so',
+    align: 'left' as const,
+    sortable: true,
+  },
+  {
+    name: 'terkirim',
+    label: 'TERKIRIM',
+    field: 'terkirim',
+    align: 'left' as const,
+    sortable: true,
+  },
   { name: 'sisa', label: 'SISA', field: 'sisa', align: 'left' as const, sortable: true },
   { name: 'status', label: 'STATUS', field: 'status', align: 'center' as const, sortable: true },
 ];
@@ -693,19 +710,19 @@ onMounted(async () => {
 
 // -- Chart Config --
 const barOptions = computed(() => ({
-  chart: { 
-     type: 'bar' as const, 
-     height: 240,
-     stacked: true,
-     toolbar: { show: false },
-     fontFamily: 'Inter, sans-serif'
+  chart: {
+    type: 'bar' as const,
+    height: 240,
+    stacked: true,
+    toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif',
   },
   colors: ['#3b82f6', '#f59e0b', '#10b981'], // blue, warning, green
   plotOptions: {
     bar: {
       horizontal: true,
       barHeight: '60%',
-      borderRadius: 4
+      borderRadius: 4,
     },
   },
   xaxis: {
@@ -715,21 +732,21 @@ const barOptions = computed(() => ({
     axisTicks: { show: false },
   },
   yaxis: {
-     show: false,
+    show: false,
   },
   grid: {
-     show: false,
+    show: false,
   },
   dataLabels: { enabled: false }, // turn off text inside bars
-  legend: { 
-     position: 'left' as const, 
-     horizontalAlign: 'left' as const, 
-     offsetY: 20 
+  legend: {
+    position: 'left' as const,
+    horizontalAlign: 'left' as const,
+    offsetY: 20,
   },
   stroke: { show: false },
   tooltip: {
     theme: 'light',
-    y: { formatter: (val: number) => `${val} SO` }
+    y: { formatter: (val: number) => `${val} SO` },
   },
 }));
 
@@ -739,23 +756,22 @@ const donutOptions = computed(() => ({
   labels: donutLabels.value,
   colors: ['#3b82f6', '#10b981', '#8b5cf6'],
   plotOptions: {
-    pie: { 
-      donut: { 
+    pie: {
+      donut: {
         size: '65%',
-      } 
+      },
     },
   },
   dataLabels: { enabled: false },
-  legend: { 
+  legend: {
     position: 'right' as const,
-    offsetY: 40
-  }, 
+    offsetY: 40,
+  },
   stroke: { show: false },
   tooltip: {
     theme: 'light',
   },
 }));
-
 </script>
 
 <style scoped>

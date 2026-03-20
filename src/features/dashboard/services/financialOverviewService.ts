@@ -36,28 +36,24 @@ export interface FinancialOverviewResult {
   labaBersih: number;
 }
 
-function getCoaSafe(no: string): Promise<CoaResponse | null> {
-  return getCoaByNo(no).then(
+function getCoaSafe(no: string, company?: string): Promise<CoaResponse | null> {
+  return getCoaByNo(no, company).then(
     (coa) => coa,
     () => null
   );
 }
 
-/**
- * Fetches all COA data in parallel and computes financial overview metrics.
- * Uses allSettled so one failing COA does not zero out the rest.
- */
-export async function fetchFinancialOverview(): Promise<FinancialOverviewResult> {
+async function fetchForCompany(company?: string): Promise<FinancialOverviewResult> {
   const results = await Promise.allSettled([
-    getCoaSafe(COA_NO.PENDAPATAN),
-    getCoaSafe(COA_NO.PIUTANG),
-    getCoaSafe(COA_NO.HUTANG[0]),
-    getCoaSafe(COA_NO.HUTANG[1]),
-    getCoaSafe(COA_NO.HUTANG[2]),
-    getCoaSafe(COA_NO.LABA_BIAYA[0]),
-    getCoaSafe(COA_NO.LABA_BIAYA[1]),
-    getCoaSafe(COA_NO.LABA_BIAYA[2]),
-    getCoaSafe(COA_NO.LABA_BIAYA[3]),
+    getCoaSafe(COA_NO.PENDAPATAN, company),
+    getCoaSafe(COA_NO.PIUTANG, company),
+    getCoaSafe(COA_NO.HUTANG[0], company),
+    getCoaSafe(COA_NO.HUTANG[1], company),
+    getCoaSafe(COA_NO.HUTANG[2], company),
+    getCoaSafe(COA_NO.LABA_BIAYA[0], company),
+    getCoaSafe(COA_NO.LABA_BIAYA[1], company),
+    getCoaSafe(COA_NO.LABA_BIAYA[2], company),
+    getCoaSafe(COA_NO.LABA_BIAYA[3], company),
   ]);
 
   const [
@@ -89,4 +85,30 @@ export async function fetchFinancialOverview(): Promise<FinancialOverviewResult>
     totalHutang,
     labaBersih,
   };
+}
+
+/**
+ * Fetches all COA data and computes Financial Overview.
+ * - Single company: metrics untuk 1 entitas.
+ * - Multiple companies: metrics dijumlahkan antar entitas (Total Piutang, Total Utang, Total Pendapatan, Laba Bersih).
+ * - Undefined: pakai default company di backend.
+ */
+export async function fetchFinancialOverview(
+  company?: string | string[]
+): Promise<FinancialOverviewResult> {
+  if (Array.isArray(company) && company.length > 0) {
+    const results = await Promise.all(company.map((c) => fetchForCompany(c)));
+    return results.reduce<FinancialOverviewResult>(
+      (acc, cur) => ({
+        totalPendapatan: acc.totalPendapatan + cur.totalPendapatan,
+        totalPiutang: acc.totalPiutang + cur.totalPiutang,
+        totalHutang: acc.totalHutang + cur.totalHutang,
+        labaBersih: acc.labaBersih + cur.labaBersih,
+      }),
+      { totalPendapatan: 0, totalPiutang: 0, totalHutang: 0, labaBersih: 0 }
+    );
+  }
+
+  // Single company or undefined (default)
+  return fetchForCompany(typeof company === 'string' ? company : undefined);
 }

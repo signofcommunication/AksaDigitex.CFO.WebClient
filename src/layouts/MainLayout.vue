@@ -150,7 +150,9 @@ const router = useRouter();
 let accurateCheckInterval: ReturnType<typeof setInterval> | undefined;
 
 const env = import.meta.env as Record<string, string | undefined>;
-const accurateHealthPath = env.VITE_ACCURATE_HEALTH_PATH ?? '/accurate/health';
+// Backend sekarang tidak expose endpoint Accurate health khusus.
+// Pakai endpoint backend yang pasti ada untuk healthcheck ringan.
+const accurateHealthPath = env.VITE_ACCURATE_HEALTH_PATH ?? '/api/companies';
 
 const accurateStatusLabel = computed(() => {
   if (accurateOnline.value === null) {
