@@ -357,18 +357,18 @@ const neracaData = ref<BsAccountRow[]>([]);
 
 const neracaKasDanSetaraKas = computed(() =>
   neracaData.value
-    .filter((r) => r.accountType === 'CASH_BANK' && !r.isParent)
-    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+    .filter((r: BsAccountRow) => r.accountType === 'CASH_BANK' && !r.isParent)
+    .reduce((sum: number, r: BsAccountRow) => sum + (Number(r.amount) || 0), 0)
 );
 const neracaPiutangUsaha = computed(() =>
   neracaData.value
-    .filter((r) => r.accountType === 'ACCOUNT_RECEIVABLE' && !r.isParent)
-    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+    .filter((r: BsAccountRow) => r.accountType === 'ACCOUNT_RECEIVABLE' && !r.isParent)
+    .reduce((sum: number, r: BsAccountRow) => sum + (Number(r.amount) || 0), 0)
 );
 const neracaUtangUsaha = computed(() =>
   neracaData.value
-    .filter((r) => r.accountType === 'ACCOUNT_PAYABLE' && !r.isParent)
-    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+    .filter((r: BsAccountRow) => r.accountType === 'ACCOUNT_PAYABLE' && !r.isParent)
+    .reduce((sum: number, r: BsAccountRow) => sum + (Number(r.amount) || 0), 0)
 );
 
 const neracaTotalAsetLancar = computed(
@@ -401,34 +401,34 @@ function formatIdrNumber(value: number): string {
 const PARENT_ORDER = ['4101', '5100', '6100', '6200', '6300', '7100', '8100', '8200', '8300'];
 
 function getParentRows(data: PlAccountRow[]): PlAccountRow[] {
-  return data.filter((r) => r.isParent === true);
+  return data.filter((r: PlAccountRow) => r.isParent === true);
 }
 
 function getChildren(data: PlAccountRow[], parentNo: string): PlAccountRow[] {
-  return data.filter((r) => r.isParent === false && r.parentNo === parentNo);
+  return data.filter((r: PlAccountRow) => r.isParent === false && r.parentNo === parentNo);
 }
 
 const labaRugiTotalPendapatan = computed(() => {
-  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '4101');
+  const parent = labaRugiData.value.find((r: PlAccountRow) => r.isParent && r.accountNo === '4101');
   return Number(parent?.amount) || 0;
 });
 const labaRugiTotalHpp = computed(() => {
-  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '5100');
+  const parent = labaRugiData.value.find((r: PlAccountRow) => r.isParent && r.accountNo === '5100');
   return Number(parent?.amount) || 0;
 });
 const labaRugiTotalBebanOp = computed(() => {
   return ['6100', '6200', '6300'].reduce((sum, no) => {
-    const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === no);
+    const parent = labaRugiData.value.find((r: PlAccountRow) => r.isParent && r.accountNo === no);
     return sum + (Number(parent?.amount) || 0);
   }, 0);
 });
 const labaRugiTotalPendapatanLain = computed(() => {
-  const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === '7100');
+  const parent = labaRugiData.value.find((r: PlAccountRow) => r.isParent && r.accountNo === '7100');
   return Number(parent?.amount) || 0;
 });
 const labaRugiTotalBebanLain = computed(() => {
   return ['8100', '8200', '8300'].reduce((sum, no) => {
-    const parent = labaRugiData.value.find((r) => r.isParent && r.accountNo === no);
+    const parent = labaRugiData.value.find((r: PlAccountRow) => r.isParent && r.accountNo === no);
     return sum + (Number(parent?.amount) || 0);
   }, 0);
 });
@@ -510,7 +510,7 @@ const labaRugiPeriodLabel = computed(() => {
 function getLabaBersihForCompany(comp: LabaRugiCompanyItem): number {
   const data = comp.data || [];
   const amount = (no: string) => {
-    const p = data.find((r) => r.isParent && r.accountNo === no);
+    const p = data.find((r: PlAccountRow) => r.isParent && r.accountNo === no);
     return Number(p?.amount) || 0;
   };
   const pend = amount('4101');

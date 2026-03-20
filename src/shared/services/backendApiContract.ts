@@ -66,11 +66,16 @@ export function getStoredBackendUrlOverride(): string | null {
   return readStoredOverride();
 }
 
+/** Path lengkap ke endpoint (base URL mengikuti override / env saat diakses). */
 export const BackendEndpoints = {
-  DATABASE_HOST: `${BACKEND_BASE_URL}${API_PREFIX}/database-host`,
+  get DATABASE_HOST() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/database-host`;
+  },
   COA: (no: string) =>
-    `${BACKEND_BASE_URL}${API_PREFIX}/coa/${encodeURIComponent(no)}`,
-  SALES_ORDERS: `${BACKEND_BASE_URL}${API_PREFIX}/sales-orders`,
+    `${getEffectiveBackendBaseUrl()}${API_PREFIX}/coa/${encodeURIComponent(no)}`,
+  get SALES_ORDERS() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/sales-orders`;
+  },
 } as const;
 
 /** HTTP client for backend (auth can be extended via interceptors) */
@@ -127,19 +132,26 @@ export interface DatabaseHostResponse {
   [key: string]: unknown;
 }
 
-/** Fetches list of configured company names (PT) for Accurate. */
-export async function getCompanies(): Promise<string[]> {
-  const { data } = await backendClient.get<string[]>(`${API_PREFIX}/companies`);
-  return Array.isArray(data) ? data : [];
+/** Backend envelope: success flag + payload in `d` */
+export interface BackendEnvelope<T> {
+  s: boolean;
+  d: T;
 }
 
-/** Fetches database host configuration. Optional company for multi-tenant. */
-export async function getDatabaseHost(company?: string): Promise<DatabaseHostResponse> {
-  const params = company ? { company } : undefined;
-  const { data } = await backendClient.get<DatabaseHostResponse>(`${API_PREFIX}/database-host`, {
-    params,
-  });
-  return data;
+/** Extract user-friendly error message from axios/unknown error. */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object' && 'response' in err) {
+    const res = (err as { response?: { data?: unknown; status?: number } }).response;
+    if (res?.data && typeof res.data === 'object' && 'detail' in res.data) {
+      const d = (res.data as { detail?: string }).detail;
+      if (typeof d === 'string') return d;
+    }
+    if (res?.status === 404) return 'Endpoint tidak ditemukan. Periksa konfigurasi API.';
+    if (res?.status === 500) return 'Server error. Silakan coba lagi nanti.';
+    if (res?.status && res.status >= 400) return `Error ${res.status}. ${fallback}`;
+  }
+  return fallback;
 }
 
 /** Fetches company names for multi-company filter. */
@@ -151,6 +163,15 @@ export async function getCompanies(): Promise<string[]> {
     const msg = extractErrorMessage(err, 'Gagal mengambil daftar perusahaan');
     throw new Error(msg);
   }
+}
+
+/** Fetches database host configuration. Optional company for multi-tenant. */
+export async function getDatabaseHost(company?: string): Promise<DatabaseHostResponse> {
+  const params = company ? { company } : undefined;
+  const { data } = await backendClient.get<DatabaseHostResponse>(`${API_PREFIX}/database-host`, {
+    params,
+  });
+  return data;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,28 +194,6 @@ export interface CoaItem {
 
 /** Response from GET /api/coa/{no} */
 export type CoaResponse = CoaItem;
-
-/** Backend envelope: success flag + payload in `d` */
-export interface BackendEnvelope<T> {
-  s: boolean;
-  d: T;
-}
-
-/** Extract user-friendly error message from axios/unknown error. */
-function extractErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error) return err.message;
-  if (err && typeof err === 'object' && 'response' in err) {
-    const res = (err as { response?: { data?: unknown; status?: number } }).response;
-    if (res?.data && typeof res.data === 'object' && 'detail' in res.data) {
-      const d = (res.data as { detail?: string }).detail;
-      if (typeof d === 'string') return d;
-    }
-    if (res?.status === 404) return 'Endpoint tidak ditemukan. Periksa konfigurasi API.';
-    if (res?.status === 500) return 'Server error. Silakan coba lagi nanti.';
-    if (res?.status && res.status >= 400) return `Error ${res.status}. ${fallback}`;
-  }
-  return fallback;
-}
 
 /** Fetches a single Chart of Accounts entry by account number. Unwraps { s, d } to return d. Optional company for multi-tenant. */
 export async function getCoaByNo(no: string, company?: string): Promise<CoaResponse> {
@@ -267,59 +266,106 @@ export async function getSalesOrders(company?: string): Promise<SalesOrderItem[]
 }
 
 // ---------------------------------------------------------------------------
-// Sales Order API
+// Laporan keuangan (Neraca, Laba Rugi)
 // ---------------------------------------------------------------------------
 
-/** Sales Order item from Accurate API (list.do) */
-export interface SalesOrderItem {
-  id?: number;
-  number?: string;
-  transDate?: string;
-  customer?: string | { name?: string };
-  branch?: string | { name?: string };
-  totalAmount?: number;
-  status?: string;
+/** Satu baris akun di Laba Rugi (P&L). */
+export interface PlAccountRow {
+  accountNo?: string;
+  no?: string | number;
+  accountName?: string;
+  name?: string;
+  amount?: number;
+  isParent?: boolean;
+  parentNo?: string;
+  parent?: string;
+  lvl?: number;
   [key: string]: unknown;
 }
 
-/** Fetches sales order list. Optional ?company= for multi-company. */
-export async function getSalesOrders(company?: string): Promise<SalesOrderItem[]> {
+/** Satu baris akun di Neraca. */
+export interface BsAccountRow {
+  accountType?: string;
+  isParent?: boolean;
+  amount?: number;
+  [key: string]: unknown;
+}
+
+/** Satu entitas dalam response multi Laba Rugi. */
+export interface LabaRugiCompanyItem {
+  companyName: string;
+  data?: PlAccountRow[];
+}
+
+/** Response GET /api/laba-rugi/multi — gabungan envelope Accurate + daftar per entitas. */
+export interface LabaRugiMultiResponse {
+  s: boolean;
+  d?: unknown;
+  companies?: LabaRugiCompanyItem[];
+}
+
+export type NeracaApiResponse = BackendEnvelope<
+  BsAccountRow[] | Record<string, unknown> | string | null | undefined
+>;
+
+export type LabaRugiApiResponse = BackendEnvelope<
+  PlAccountRow[] | Record<string, unknown> | string | null | undefined
+>;
+
+/**
+ * Neraca per tanggal (as of). Backend: GET /api/neraca?asOf=&company=
+ */
+export async function getNeraca(asOf: string, company?: string): Promise<NeracaApiResponse> {
   try {
-    const params = company ? { company } : undefined;
-    const response = await backendClient.get(`${API_PREFIX}/sales-orders`, {
+    const params: Record<string, string> = { asOf };
+    if (company) params.company = company;
+    const { data } = await backendClient.get<NeracaApiResponse>(`${API_PREFIX}/neraca`, {
       params,
-      responseType: 'json',
     });
-    const data = response.data as unknown;
-    const envelope = data as BackendEnvelope<SalesOrderItem[] | SalesOrderItem>;
-    const payload = envelope?.d;
-    if (envelope?.s === false) {
-      throw new Error(
-        typeof envelope.d === 'string' ? envelope.d : 'Gagal mengambil data Sales Order'
-      );
-    }
-    if (payload == null) return [];
-    return Array.isArray(payload) ? payload : [payload];
+    return data;
   } catch (err: unknown) {
-    const msg = extractErrorMessage(err, 'Gagal mengambil data Sales Order');
-    throw new Error(msg);
+    throw new Error(extractErrorMessage(err, 'Gagal mengambil Neraca'));
   }
 }
 
-/** Extract user-friendly error message from axios/unknown error. */
-function extractErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error) return err.message;
-  if (err && typeof err === 'object' && 'response' in err) {
-    const res = (err as { response?: { data?: unknown; status?: number } }).response;
-    if (res?.data && typeof res.data === 'object' && 'detail' in res.data) {
-      const d = (res.data as { detail?: string }).detail;
-      if (typeof d === 'string') return d;
-    }
-    if (res?.status === 404) return 'Endpoint tidak ditemukan. Periksa konfigurasi API.';
-    if (res?.status === 500) return 'Server error. Silakan coba lagi nanti.';
-    if (res?.status && res.status >= 400) return `Error ${res.status}. ${fallback}`;
+/**
+ * Laba rugi satu entitas. Backend: GET /api/laba-rugi?from=&to=&company=
+ */
+export async function getLabaRugi(
+  from: string,
+  to: string,
+  company: string,
+): Promise<LabaRugiApiResponse> {
+  try {
+    const { data } = await backendClient.get<LabaRugiApiResponse>(`${API_PREFIX}/laba-rugi`, {
+      params: { from, to, company },
+    });
+    return data;
+  } catch (err: unknown) {
+    throw new Error(extractErrorMessage(err, 'Gagal mengambil Laba Rugi'));
   }
-  return fallback;
+}
+
+/**
+ * Laba rugi multi entitas (perbandingan). Backend: GET /api/laba-rugi/multi?from=&to=&companies=
+ * (`companies` dipisahkan koma; sesuaikan di backend jika format berbeda.)
+ */
+export async function getLabaRugiMulti(
+  from: string,
+  to: string,
+  companies: string[],
+): Promise<LabaRugiMultiResponse> {
+  try {
+    const { data } = await backendClient.get<LabaRugiMultiResponse>(
+      `${API_PREFIX}/laba-rugi/multi`,
+      {
+        params: { from, to, companies: companies.join(',') },
+      },
+    );
+    return data;
+  } catch (err: unknown) {
+    throw new Error(extractErrorMessage(err, 'Gagal mengambil Laba Rugi multi'));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -334,13 +380,17 @@ export const BackendApiContract = {
   endpoints: {
     companies: 'GET /api/companies',
     databaseHost: 'GET /api/database-host',
-    companies: 'GET /api/companies',
     coa: 'GET /api/coa/{no}',
     salesOrders: 'GET /api/sales-orders',
+    neraca: 'GET /api/neraca',
+    labaRugi: 'GET /api/laba-rugi',
+    labaRugiMulti: 'GET /api/laba-rugi/multi',
   },
   getCompanies,
   getDatabaseHost,
-  getCompanies,
   getCoaByNo,
   getSalesOrders,
+  getNeraca,
+  getLabaRugi,
+  getLabaRugiMulti,
 } as const;
