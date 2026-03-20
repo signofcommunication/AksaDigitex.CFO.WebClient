@@ -108,7 +108,7 @@
             use-chips
             emit-value
             map-options
-            :label="activeTab === 'laba-rugi' ? 'Entitas (bisa pilih 2+ untuk banding)' : 'Entitas'"
+            :label="entitasSelectLabel"
           >
             <template v-slot:append
               ><q-icon name="expand_more" color="grey-7" size="xs"
@@ -167,402 +167,50 @@
     </q-card>
 
     <!-- Content Neraca -->
-    <q-card v-if="activeTab === 'neraca'" class="bg-white shadow-1 border-radius-8" flat bordered>
-      <q-card-section class="q-pa-md border-bottom">
-        <div class="text-subtitle1 text-dark text-weight-bold">Neraca — Balance Sheet</div>
-        <div class="text-caption text-grey-7">
-          {{ neracaHeaderText }}
-        </div>
-      </q-card-section>
-      <q-card-section class="q-pa-lg">
-        <div class="row q-col-gutter-xl">
-          <div class="col-12 col-md-6">
-            <div
-              class="q-mb-lg row items-center q-pa-sm rounded-borders bg-blue-1 text-blue-9 border-blue-2"
-              style="border: 1px solid"
-            >
-              <q-icon name="account_balance_wallet" class="q-mr-sm" size="xs" />
-              <span class="text-weight-bold text-caption">ASET</span>
-            </div>
-            <div
-              class="text-caption text-grey-7 text-weight-bold q-mb-sm text-uppercase"
-              style="letter-spacing: 1px"
-            >
-              Aset Lancar
-            </div>
-            <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Kas & Setara Kas</span
-              ><span class="text-weight-medium">{{ formatIdrNumber(neracaKasDanSetaraKas) }}</span>
-            </div>
-            <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Piutang Usaha</span
-              ><span class="text-weight-medium">{{ formatIdrNumber(neracaPiutangUsaha) }}</span>
-            </div>
-            <div class="row justify-between q-pa-sm bg-blue-1 rounded-borders q-mb-xl q-mt-md">
-              <span class="text-primary text-weight-bold text-body2">Total Aset Lancar</span
-              ><span class="text-primary text-weight-bold text-body2">{{
-                formatIdrNumber(neracaTotalAsetLancar)
-              }}</span>
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div
-              class="q-mb-lg row items-center q-pa-sm rounded-borders bg-teal-1 text-teal-9 border-teal-2"
-              style="border: 1px solid"
-            >
-              <q-icon name="security" class="q-mr-sm" size="xs" />
-              <span class="text-weight-bold text-caption">LIABILITAS & EKUITAS</span>
-            </div>
-            <div
-              class="text-caption text-grey-7 text-weight-bold q-mb-sm text-uppercase"
-              style="letter-spacing: 1px"
-            >
-              Liabilitas Jangka Pendek
-            </div>
-            <div class="row justify-between text-body2 text-dark q-mb-sm">
-              <span>Utang Usaha</span
-              ><span class="text-weight-medium">{{ formatIdrNumber(neracaUtangUsaha) }}</span>
-            </div>
-            <div class="row justify-between q-pa-sm bg-orange-1 rounded-borders q-mb-xl q-mt-md">
-              <span class="text-orange-9 text-weight-bold text-body2">Total Liab. Pendek</span
-              ><span class="text-orange-9 text-weight-bold text-body2">{{
-                formatIdrNumber(neracaTotalLiabPendek)
-              }}</span>
-            </div>
-          </div>
-        </div>
-      </q-card-section>
-    </q-card>
+    <NeracaSection
+      v-if="activeTab === 'neraca'"
+      :header-text="neracaHeaderText"
+      :kas-dan-setara-kas="neracaKasDanSetaraKas"
+      :piutang-usaha="neracaPiutangUsaha"
+      :total-aset-lancar="neracaTotalAsetLancar"
+      :utang-usaha="neracaUtangUsaha"
+      :total-liab-pendek="neracaTotalLiabPendek"
+      :format-idr-number="formatIdrNumber"
+    />
 
     <!-- Content Laba Rugi -->
-    <div v-else-if="activeTab === 'laba-rugi'">
-      <p v-if="labaRugiError" class="text-negative q-mb-md">{{ labaRugiError }}</p>
-      <div v-if="labaRugiLoading" class="row justify-center q-py-xl">
-        <q-spinner-dots color="primary" size="40px" />
-      </div>
-
-      <!-- Multi-entitas: ringkasan + tombol bandingkan -->
-      <template v-else-if="labaRugiMultiData?.companies && labaRugiMultiData.companies.length >= 2">
-        <div class="row q-mb-md justify-between items-center">
-          <div class="text-caption text-grey-7">
-            Pilih 2 entitas atau lebih untuk membandingkan. Klik tombol di bawah untuk detail.
-          </div>
-          <q-btn
-            color="primary"
-            icon="compare_arrows"
-            label="Lihat perbandingan detail"
-            unelevated
-            no-caps
-            class="border-radius-6"
-            @click="compareDialogOpen = true"
-          />
-        </div>
-        <div class="row q-col-gutter-md q-mb-lg">
-          <q-card
-            v-for="comp in labaRugiMultiData.companies"
-            :key="comp.companyName"
-            class="col-12 col-sm-6 col-md-4 bg-white shadow-1 border-radius-8"
-            flat
-            bordered
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-grey-7 text-weight-bold text-uppercase q-mb-xs">
-                {{ comp.companyName }}
-              </div>
-              <div :class="getLabaBersihForCompany(comp) >= 0 ? 'text-positive' : 'text-negative'" class="text-h6 text-weight-bold">
-                {{ formatIdrLabaBersih(getLabaBersihForCompany(comp)) }}
-              </div>
-              <div class="text-caption text-grey-6 q-mt-xs">Laba Bersih</div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <LabaRugiCompareDialog
-          v-model="compareDialogOpen"
-          :companies-data="labaRugiMultiData.companies as LabaRugiCompanyItem[]"
-          :period-label="labaRugiPeriodLabel"
-        />
-      </template>
-
-      <div v-else class="row q-col-gutter-lg">
-        <div class="col-12 col-md-8">
-          <q-card class="bg-white shadow-1 border-radius-8 q-mb-md" flat bordered>
-            <q-card-section class="q-pa-lg">
-              <div class="q-mb-xl">
-                <div class="text-subtitle1 text-dark text-weight-bold">Laporan Laba Rugi</div>
-                <div class="text-caption text-grey-7">
-                  {{ labaRugiPeriodLabel }} — {{ labaRugiEntitasLabel }}
-                </div>
-              </div>
-              <template v-if="labaRugiDisplayLines.length > 0">
-                <template v-for="(line, idx) in labaRugiDisplayLines" :key="idx">
-                  <template v-if="line.kind === 'row'">
-                    <div
-                      class="row justify-between text-body2 text-dark q-mb-xs"
-                      :class="line.row?.isParent ? 'q-mt-md' : ''"
-                    >
-                      <span
-                        :class="line.row?.isParent ? 'text-weight-bold' : 'text-grey-8'"
-                        :style="{ paddingLeft: ((line.row?.lvl ?? 0) * 16) + 'px' }"
-                      >{{ line.row?.accountName ?? line.row?.name ?? '' }}</span>
-                      <span
-                        :class="[
-                          line.row?.isParent ? 'text-weight-bold' : 'text-weight-medium',
-                          (line.row?.amount ?? 0) < 0 ? 'text-negative' : ''
-                        ]"
-                      >{{ formatAmount(line.row?.amount ?? 0) }}</span>
-                    </div>
-                  </template>
-                  <template v-else-if="line.kind === 'subtotal'">
-                    <div
-                      class="row justify-between q-pa-sm rounded-borders items-center q-mt-sm q-mb-sm"
-                      :class="line.subtotalClass"
-                    >
-                      <span :class="line.subtotalLabelClass" class="text-weight-bold text-body2">{{ line.label }}</span>
-                      <span :class="line.subtotalAmountClass" class="text-weight-bold text-body2">{{ line.formattedAmount }}</span>
-                    </div>
-                  </template>
-                </template>
-                <div
-                  class="row justify-between q-pa-md rounded-borders items-center q-mt-md"
-                  :class="labaBersihValue >= 0 ? 'bg-teal-1' : 'bg-red-1'"
-                  style="border: 1px solid rgba(20, 184, 166, 0.2)"
-                >
-                  <div class="row items-center">
-                    <q-icon name="add" :color="labaBersihValue >= 0 ? 'positive' : 'negative'" size="xs" class="q-mr-sm" />
-                    <span
-                      :class="labaBersihValue >= 0 ? 'text-positive' : 'text-negative'"
-                      class="text-weight-bold text-subtitle2 text-uppercase"
-                      style="letter-spacing: 1px"
-                    >Laba Bersih</span>
-                  </div>
-                  <span
-                    :class="labaBersihValue >= 0 ? 'text-positive' : 'text-negative'"
-                    class="text-weight-bold text-subtitle1"
-                  >{{ formatIdrLabaBersih(labaBersihValue) }}</span>
-                </div>
-              </template>
-              <div v-else-if="!labaRugiLoading && labaRugiFetched" class="text-grey-7 text-body2">
-                Tidak ada data. Pilih periode dan entitas lalu klik Apply.
-              </div>
-              <div v-else-if="!labaRugiLoading && !labaRugiFetched" class="text-grey-7 text-body2">
-                Pilih periode dan entitas, lalu klik Apply untuk memuat data.
-              </div>
-            </q-card-section>
-          </q-card>
-          <div class="row q-col-gutter-md">
-            <div class="col-4">
-              <q-card class="bg-white shadow-1 border-radius-8" flat bordered
-                ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-dark text-weight-bold text-subtitle1">{{ labaRugiGrossMarginPercent }}%</div>
-                  <div class="text-grey-7 text-caption q-mt-xs">Gross Margin</div></q-card-section
-                ></q-card
-              >
-            </div>
-            <div class="col-4">
-              <q-card
-                class="bg-teal-1 shadow-1 border-radius-8 border-teal-2"
-                style="border: 1px solid"
-                flat
-                ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-teal-9 text-weight-bold text-subtitle1">{{ labaRugiNetMarginPercent }}%</div>
-                  <div class="text-teal-8 text-caption q-mt-xs">Net Margin</div></q-card-section
-                ></q-card
-              >
-            </div>
-            <div class="col-4">
-              <q-card
-                class="bg-blue-1 shadow-1 border-radius-8 border-blue-2"
-                style="border: 1px solid"
-                flat
-                ><q-card-section class="text-center q-pa-md column items-center justify-center"
-                  ><div class="text-blue-9 text-weight-bold text-subtitle1">—</div>
-                  <div class="text-blue-8 text-caption q-mt-xs">YoY Growth</div></q-card-section
-                ></q-card
-              >
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-white shadow-1 border-radius-8 h-full"
-            flat
-            bordered
-            style="height: 100%"
-          >
-            <q-card-section class="q-pa-lg">
-              <div
-                class="text-caption text-grey-7 text-weight-bold q-mb-xl text-uppercase"
-                style="letter-spacing: 1px"
-              >
-                Komposisi
-              </div>
-              <div class="flex flex-center q-mb-xl q-mt-lg" style="height: 220px">
-                <VueApexCharts
-                  type="donut"
-                  width="280"
-                  height="220"
-                  :options="donutOptions"
-                  :series="donutSeries"
-                />
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-    </div>
+    <LabaRugiSection
+      v-else-if="activeTab === 'laba-rugi'"
+      :laba-rugi-loading="labaRugiLoading"
+      :laba-rugi-error="labaRugiError"
+      :laba-rugi-fetched="labaRugiFetched"
+      :multi-companies="labaRugiMultiData?.companies ?? []"
+      :compare-dialog-open="compareDialogOpen"
+      :compare-companies-data="labaRugiMultiData?.companies ?? []"
+      :compare-period-label="labaRugiPeriodLabel"
+      :get-laba-bersih-for-company="getLabaBersihForCompany"
+      :format-idr-laba-bersih="formatIdrLabaBersih"
+      :format-amount="formatAmount"
+      :laba-rugi-period-label="labaRugiPeriodLabel"
+      :laba-rugi-entitas-label="labaRugiEntitasLabel"
+      :laba-rugi-display-lines="labaRugiDisplayLines"
+      :laba-bersih-value="labaBersihValue"
+      :laba-rugi-gross-margin-percent="labaRugiGrossMarginPercent"
+      :laba-rugi-net-margin-percent="labaRugiNetMarginPercent"
+      :donut-options="donutOptions"
+      :donut-series="donutSeries"
+      @update:compareDialogOpen="compareDialogOpen = $event"
+    />
 
     <!-- Content Arus Kas -->
-    <div v-else-if="activeTab === 'arus-kas'">
-      <!-- Arus Kas KPI Cards -->
-      <div class="row q-col-gutter-md q-mb-lg">
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-teal-1 border-radius-8 border-teal-2 shadow-1"
-            style="border: 1px solid"
-            flat
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-teal-8 text-caption text-weight-bold text-uppercase q-mb-xs">
-                Total Cash In
-              </div>
-              <div class="text-teal-10 text-h5 text-weight-bold q-mb-xs">Rp 9.350.000.000</div>
-              <div class="text-teal-7 text-caption flex items-center">
-                <q-icon name="arrow_upward" size="xs" class="q-mr-xs" /> 14.2% vs periode lalu
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-red-1 border-radius-8 border-red-2 shadow-1"
-            style="border: 1px solid"
-            flat
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-red-8 text-caption text-weight-bold text-uppercase q-mb-xs">
-                Total Cash Out
-              </div>
-              <div class="text-red-10 text-h5 text-weight-bold q-mb-xs">Rp 7.050.000.000</div>
-              <div class="text-red-7 text-caption flex items-center">
-                <q-icon name="arrow_downward" size="xs" class="q-mr-xs" /> 8.1% vs periode lalu
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-        <div class="col-12 col-md-4">
-          <q-card
-            class="bg-blue-1 border-radius-8 border-blue-2 shadow-1"
-            style="border: 1px solid"
-            flat
-          >
-            <q-card-section class="q-pa-md">
-              <div class="text-blue-8 text-caption text-weight-bold text-uppercase q-mb-xs">
-                Net Cash Flow
-              </div>
-              <div class="text-blue-10 text-h5 text-weight-bold q-mb-xs">Rp 2.300.000.000</div>
-              <div class="text-blue-7 text-caption flex items-center">
-                <q-icon name="arrow_upward" size="xs" class="q-mr-xs" /> 21.4% vs periode lalu
-              </div>
-            </q-card-section>
-          </q-card>
-        </div>
-      </div>
-
-      <!-- Arus Kas Chart -->
-      <q-card class="bg-white shadow-1 border-radius-8 q-mb-lg" flat bordered>
-        <q-card-section class="q-pa-md border-bottom">
-          <div
-            class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
-            style="letter-spacing: 1px"
-          >
-            Grafik Arus Kas Bulanan
-          </div>
-        </q-card-section>
-        <q-card-section class="q-pa-lg">
-          <div class="relative w-full mt-4">
-            <VueApexCharts
-              type="line"
-              height="300"
-              :options="cashFlowOptions"
-              :series="cashFlowSeries"
-            />
-          </div>
-
-          <!-- Legend -->
-          <div class="row justify-center q-gutter-x-lg q-mt-md text-caption text-grey-8">
-            <div class="flex items-center">
-              <div
-                class="q-mr-sm"
-                style="width: 12px; height: 12px; background-color: #10b981; border-radius: 2px"
-              ></div>
-              Cash In
-            </div>
-            <div class="flex items-center">
-              <div
-                class="q-mr-sm"
-                style="width: 12px; height: 12px; background-color: #ef4444; border-radius: 2px"
-              ></div>
-              Cash Out
-            </div>
-            <div class="flex items-center">
-              <div
-                class="q-mr-sm"
-                style="width: 12px; height: 4px; background-color: #3b82f6"
-              ></div>
-              <circle cx="6" cy="2" r="4" fill="#3b82f6" class="q-mr-sm" /> Net
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
-
-      <!-- Detail Table -->
-      <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
-        <q-card-section class="q-pa-md border-bottom">
-          <div
-            class="text-subtitle2 text-grey-8 text-weight-bold text-uppercase"
-            style="letter-spacing: 1px"
-          >
-            Detail Arus Kas Bulanan
-          </div>
-        </q-card-section>
-        <q-table
-          :rows="cashFlowTableData"
-          :columns="cashFlowColumns"
-          row-key="month"
-          flat
-          hide-bottom
-          :pagination="{ rowsPerPage: 12 }"
-          class="text-body2 bg-white"
-          table-header-class="text-grey-8 bg-grey-1"
-        >
-          <template v-slot:body-cell-in="props">
-            <q-td :props="props" class="text-teal-7 text-weight-medium">{{
-              formatCurrency(props.row.in)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-out="props">
-            <q-td :props="props" class="text-red-7 text-weight-medium">{{
-              formatCurrency(props.row.out)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-net="props">
-            <q-td :props="props" class="text-blue-7 text-weight-bold">{{
-              formatCurrency(props.row.net)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-cumulative="props">
-            <q-td :props="props" class="text-teal-9 text-weight-bold">{{
-              formatCurrency(props.row.cumulative)
-            }}</q-td>
-          </template>
-          <template v-slot:body-cell-month="props">
-            <q-td :props="props" class="text-dark text-weight-bold"
-              >{{ props.row.month }} 2024</q-td
-            >
-          </template>
-        </q-table>
-      </q-card>
-    </div>
+    <ArusKasSection
+      v-else-if="activeTab === 'arus-kas'"
+      :cash-flow-options="cashFlowOptions"
+      :cash-flow-series="cashFlowSeries"
+      :cash-flow-table-data="cashFlowTableData"
+      :cash-flow-columns="cashFlowColumns"
+      :format-currency="formatCurrency"
+    />
 
     <!-- Export PDF Dialog -->
     <q-dialog v-model="isExportPdfDialogOpen">
@@ -669,7 +317,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { date, useQuasar } from 'quasar';
-import VueApexCharts from 'vue3-apexcharts';
 import DateRangePicker from '@/components/DateRangePicker.vue';
 import SingleDatePicker from '@/components/SingleDatePicker.vue';
 import AppButton from '@/shared/components/AppButton.vue';
@@ -683,7 +330,9 @@ import {
   type LabaRugiCompanyItem,
   type BsAccountRow,
 } from '@/shared/services/backendApiContract';
-import LabaRugiCompareDialog from '../components/LabaRugiCompareDialog.vue';
+import NeracaSection from '../components/sections/NeracaSection.vue';
+import LabaRugiSection from '../components/sections/LabaRugiSection.vue';
+import ArusKasSection from '../components/sections/ArusKasSection.vue';
 
 const $q = useQuasar();
 
@@ -696,6 +345,13 @@ const entitas = ref<string[]>([]);
 const entitasOptions = computed(() =>
   companies.value.map((c) => ({ label: c, value: c }))
 );
+
+const entitasSelectLabel = computed(() => {
+  // Supaya label tidak numpang / mepet dengan chips saat multi-select sudah dipilih
+  if (entitas.value.length > 0) return undefined;
+  if (activeTab.value === 'laba-rugi') return 'Entitas (bisa pilih 2+ untuk banding)';
+  return 'Entitas';
+});
 
 // Laba Rugi (P&L) – single entity
 const labaRugiLoading = ref(false);
@@ -852,7 +508,7 @@ const labaRugiDisplayLines = computed((): DisplayLine[] => {
 const labaRugiEntitasLabel = computed(() => {
   const e = entitas.value;
   if (!e || e.length === 0) return 'Pilih entitas';
-  if (e.length === 1) return e[0];
+  if (e.length === 1) return e[0] ?? 'Pilih entitas';
   return e.join(', ');
 });
 
@@ -1236,14 +892,36 @@ const cashFlowColumns = [
   border-color: #fecaca !important;
 }
 .filter-select :deep(.q-field__control) {
-  height: 36px;
   min-height: 36px;
   border-radius: 6px;
+  height: auto; /* allow chips to wrap / fit properly */
+  align-items: flex-start;
 }
 .filter-select :deep(.q-field__marginal) {
-  height: 36px;
+  height: auto;
+  min-height: 36px;
+}
+.filter-select :deep(.q-select__chips) {
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  padding: 4px 0;
+  align-items: center;
+}
+.filter-select :deep(.q-chip) {
+  margin: 0; /* spacing handled by q-select__chips gap */
 }
 .q-table__container {
   border-radius: 0 0 8px 8px;
+}
+
+.compare-summary-row {
+  position: relative;
+  z-index: 2;
+}
+
+.compare-cards-row {
+  position: relative;
+  z-index: 1;
+  margin-top: 2px; /* small visual separation from the compare-summary-row */
 }
 </style>
