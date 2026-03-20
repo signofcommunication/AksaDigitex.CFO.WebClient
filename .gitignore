@@ -29,7 +29,10 @@ yarn-error.log*
 *.njsproj
 *.sln
 
-# local .env files
+# local .env files (jangan commit secret / URL internal)
+.env
+.env.*
+!.env.example
 .env.local*
 
 eslint.log

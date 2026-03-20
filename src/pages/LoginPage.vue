@@ -24,6 +24,39 @@
             </template>
           </q-input>
 
+          <q-slide-transition>
+            <div v-show="showAdminBackendField" class="column q-gutter-xs">
+              <q-banner rounded class="bg-amber-1 text-grey-9 text-body2">
+                Mode administrator: ganti origin API jika server default mati. Tersimpan di browser
+                (localStorage).
+              </q-banner>
+              <q-input
+                v-model="backendUrlOverrideInput"
+                type="text"
+                label="Backend API URL"
+                hint="Contoh: https://backup-server:55585 — kosongkan lalu login untuk pakai URL dari .env"
+                outlined
+                dense
+              >
+                <template #prepend>
+                  <q-icon name="dns" color="grey-7" />
+                </template>
+                <template #append>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    icon="refresh"
+                    color="grey-7"
+                    @click.prevent="resetBackendUrlFieldToEnv"
+                  >
+                    <q-tooltip>Isi dari URL .env</q-tooltip>
+                  </q-btn>
+                </template>
+              </q-input>
+            </div>
+          </q-slide-transition>
+
           <q-input
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
@@ -78,16 +111,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import {
+  getBackendUrlFromEnv,
+  getStoredBackendUrlOverride,
+  isAdminBackendOverrideEmail,
+  setBackendUrlOverride,
+} from '@/shared/services/backendApiContract';
 
 const email = ref('');
 const password = ref('');
 const showPassword = ref(false);
 const loading = ref(false);
+const backendUrlOverrideInput = ref('');
 const router = useRouter();
 
+const showAdminBackendField = computed(() => isAdminBackendOverrideEmail(email.value));
+
+function refreshBackendUrlFieldFromSources(): void {
+  backendUrlOverrideInput.value =
+    getStoredBackendUrlOverride() ?? getBackendUrlFromEnv() ?? '';
+}
+
+function resetBackendUrlFieldToEnv(): void {
+  backendUrlOverrideInput.value = getBackendUrlFromEnv() ?? '';
+}
+
+watch(showAdminBackendField, (show) => {
+  if (show) refreshBackendUrlFieldFromSources();
+});
+
 const handleLogin = () => {
+  if (isAdminBackendOverrideEmail(email.value)) {
+    const trimmed = backendUrlOverrideInput.value.trim();
+    setBackendUrlOverride(trimmed.length > 0 ? trimmed : null);
+  }
+
   loading.value = true;
   setTimeout(() => {
     loading.value = false;

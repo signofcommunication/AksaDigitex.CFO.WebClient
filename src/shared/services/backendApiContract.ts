@@ -1,39 +1,134 @@
-/**
- * Backend API Contract
- *
- * Typed contract for backend endpoints (database-host, coa).
- * Base URL: VITE_BACKEND_API_URL or https://localhost:55585
- */
-
 import axios, { type AxiosInstance } from 'axios';
-
-// ---------------------------------------------------------------------------
-// Base URL & Endpoints
-// ---------------------------------------------------------------------------
-
-export const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_API_URL ?? 'https://localhost:55585';
 
 const API_PREFIX = '/api';
 
+/** Key localStorage untuk origin API cadangan (hanya diset dari halaman login admin). */
+export const BACKEND_URL_OVERRIDE_STORAGE_KEY = 'cfo_backend_api_origin_override';
+
+/** Email yang memunculkan field mengganti URL backend di login. */
+export const ADMIN_BACKEND_OVERRIDE_EMAIL = 'administrator@aksadigitex.com';
+
+export function isAdminBackendOverrideEmail(email: string): boolean {
+  return email.trim().toLowerCase() === ADMIN_BACKEND_OVERRIDE_EMAIL.toLowerCase();
+}
+
+function normalizeBackendOrigin(raw: string): string {
+  return raw.trim().replace(/\/+$/, '');
+}
+
+/**
+ * Origin dari `.env` saja (tanpa override browser).
+ * Wajib `VITE_BACKEND_API_URL` — lihat `.env.example`.
+ */
+export function getBackendUrlFromEnv(): string {
+  const raw = import.meta.env.VITE_BACKEND_API_URL;
+  const url = typeof raw === 'string' ? raw.trim().replace(/\/+$/, '') : '';
+  if (url) return url;
+
+  const hint =
+    'Set VITE_BACKEND_API_URL in .env (salin dari .env.example). Nilai diisi saat dev/build oleh Vite.';
+  if (import.meta.env.PROD) {
+    throw new Error(`[env] ${hint}`);
+  }
+  console.warn(`[env] ${hint}`);
+  return '';
+}
+
+function readStoredOverride(): string | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const v = localStorage.getItem(BACKEND_URL_OVERRIDE_STORAGE_KEY);
+    if (!v || !v.trim()) return null;
+    return normalizeBackendOrigin(v);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Origin yang dipakai seluruh client HTTP: **override (admin)** jika ada, lalu **env**.
+ * Tanpa path `/api`.
+ */
+export function getEffectiveBackendBaseUrl(): string {
+  const over = readStoredOverride();
+  if (over) return over;
+  return getBackendUrlFromEnv();
+}
+
+const extraAxiosForBaseUrl: AxiosInstance[] = [];
+
+/** Daftarkan instance axios lain (mis. dari `boot/axios`) agar ikut di-`sync` saat override berubah. */
+export function registerAxiosBaseUrlSync(instance: AxiosInstance): void {
+  extraAxiosForBaseUrl.push(instance);
+}
+
+export function getStoredBackendUrlOverride(): string | null {
+  return readStoredOverride();
+}
+
 export const BackendEndpoints = {
-  COMPANIES: `${BACKEND_BASE_URL}${API_PREFIX}/companies`,
-  DATABASE_HOST: `${BACKEND_BASE_URL}${API_PREFIX}/database-host`,
+  get COMPANIES() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/companies`;
+  },
+  get DATABASE_HOST() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/database-host`;
+  },
   COA: (no: string, company?: string) => {
-    const path = `${BACKEND_BASE_URL}${API_PREFIX}/coa/${encodeURIComponent(no)}`;
+    const path = `${getEffectiveBackendBaseUrl()}${API_PREFIX}/coa/${encodeURIComponent(no)}`;
     if (company) return `${path}?company=${encodeURIComponent(company)}`;
     return path;
   },
-  SALES_ORDERS: `${BACKEND_BASE_URL}${API_PREFIX}/sales-orders`,
-  LAPORAN_LABA_RUGI: `${BACKEND_BASE_URL}${API_PREFIX}/laporan-keuangan/laba-rugi`,
-  LAPORAN_NERACA: `${BACKEND_BASE_URL}${API_PREFIX}/laporan-keuangan/neraca`,
+  get SALES_ORDERS() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/sales-orders`;
+  },
+  get LAPORAN_LABA_RUGI() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/laporan-keuangan/laba-rugi`;
+  },
+  get LAPORAN_NERACA() {
+    return `${getEffectiveBackendBaseUrl()}${API_PREFIX}/laporan-keuangan/neraca`;
+  },
 } as const;
 
 /** HTTP client for backend (auth can be extended via interceptors) */
 export const backendClient: AxiosInstance = axios.create({
-  baseURL: BACKEND_BASE_URL,
+  baseURL: getEffectiveBackendBaseUrl(),
   timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
 });
+
+/**
+ * Terapkan ulang `getEffectiveBackendBaseUrl()` ke `backendClient` dan instance terdaftar.
+ */
+export function syncHttpClientsBaseUrl(): void {
+  const base = getEffectiveBackendBaseUrl();
+  backendClient.defaults.baseURL = base;
+  for (const c of extraAxiosForBaseUrl) {
+    c.defaults.baseURL = base;
+  }
+}
+
+/**
+ * Simpan / hapus override origin API (tanpa path `/api`).
+ * Origin tanpa skema `http://` atau `https://` akan diberi prefiks `https://`.
+ */
+export function setBackendUrlOverride(origin: string | null | undefined): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (origin == null || !String(origin).trim()) {
+      localStorage.removeItem(BACKEND_URL_OVERRIDE_STORAGE_KEY);
+      syncHttpClientsBaseUrl();
+      return;
+    }
+    let o = String(origin).trim();
+    if (!/^https?:\/\//i.test(o)) {
+      o = `https://${o}`;
+    }
+    localStorage.setItem(BACKEND_URL_OVERRIDE_STORAGE_KEY, normalizeBackendOrigin(o));
+    syncHttpClientsBaseUrl();
+  } catch (e) {
+    console.warn('[env] Gagal menyimpan override URL backend', e);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Database Host API
@@ -324,7 +419,9 @@ export async function getNeracaMulti(
 
 /** Contract summary: base URL, endpoint descriptions, and client functions */
 export const BackendApiContract = {
-  baseUrl: BACKEND_BASE_URL,
+  get baseUrl() {
+    return getEffectiveBackendBaseUrl();
+  },
   endpoints: {
     companies: 'GET /api/companies',
     databaseHost: 'GET /api/database-host',
