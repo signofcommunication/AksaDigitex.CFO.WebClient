@@ -1,5 +1,8 @@
 <template>
-  <q-page class="q-pa-lg bg-grey-1" style="min-height: 100vh; font-family: 'Inter', sans-serif">
+  <q-page
+    class="financial-report-page q-pa-lg bg-grey-1"
+    style="min-height: 100vh; font-family: 'Inter', sans-serif"
+  >
     <!-- Top Breadcrumb Area -->
     <div class="row justify-between items-center q-mb-md">
       <div>
@@ -85,8 +88,8 @@
       />
     </div>
 
-    <!-- Filter Bar -->
-    <q-card class="q-mb-lg bg-white shadow-1 border-radius-8" flat bordered>
+    <!-- Filter Bar (margin bawah 16–24px ke konten di bawah, sejajar dengan card) -->
+    <q-card class="financial-report-filter bg-white shadow-1 border-radius-8" flat bordered>
       <q-card-section class="row items-center q-pa-sm q-col-gutter-md">
         <div class="col-auto row items-center">
           <span
@@ -873,6 +876,15 @@ const cashFlowColumns = [
 </script>
 
 <style scoped>
+.financial-report-page {
+  box-sizing: border-box;
+}
+
+/* Jarak vertikal filter → konten: 16–24px, sama rata dengan padding halaman */
+.financial-report-filter {
+  margin-bottom: clamp(16px, 2vw, 24px);
+}
+
 .border-radius-8 {
   border-radius: 8px !important;
 }

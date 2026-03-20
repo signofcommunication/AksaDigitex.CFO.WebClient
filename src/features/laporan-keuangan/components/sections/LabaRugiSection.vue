@@ -1,15 +1,15 @@
 <template>
-  <div>
+  <div class="laba-rugi-section">
     <p v-if="labaRugiError" class="text-negative q-mb-md">{{ labaRugiError }}</p>
     <div v-if="labaRugiLoading" class="row justify-center q-py-xl">
       <q-spinner-dots color="primary" size="40px" />
     </div>
 
     <template v-else>
-      <!-- Multi-entitas: ringkasan + tombol bandingkan -->
+      <!-- Multi-entitas: ringkasan + tombol bandingkan + grid card entitas -->
       <template v-if="multiCompanies?.length && multiCompanies.length >= 2">
-        <div class="row q-mb-lg justify-between items-center compare-summary-row">
-          <div class="text-caption text-grey-7">
+        <div class="financial-multi-header compare-summary-row">
+          <div class="financial-multi-header__hint text-caption text-grey-7">
             Pilih 2 entitas atau lebih untuk membandingkan. Klik tombol di bawah untuk detail.
           </div>
           <q-btn
@@ -18,30 +18,30 @@
             label="Lihat perbandingan detail"
             unelevated
             no-caps
-            class="border-radius-6"
+            class="financial-multi-header__btn border-radius-6"
             @click="$emit('update:compareDialogOpen', true)"
           />
         </div>
 
-        <div class="row q-col-gutter-xl q-mt-md q-mb-lg compare-cards-row">
+        <div class="financial-entity-cards-grid q-mb-lg">
           <q-card
             v-for="comp in multiCompanies"
             :key="comp.companyName"
-            class="col-12 col-sm-6 col-md-4 bg-white shadow-1 border-radius-8"
+            class="financial-entity-card bg-white"
             flat
             bordered
           >
-            <q-card-section class="q-pa-md">
-              <div class="text-caption text-grey-7 text-weight-bold text-uppercase q-mb-xs">
+            <q-card-section class="financial-entity-card__inner">
+              <div class="financial-entity-card__title text-grey-8 text-uppercase">
                 {{ comp.companyName }}
               </div>
               <div
+                class="financial-entity-card__value"
                 :class="getLabaBersihForCompany(comp) >= 0 ? 'text-positive' : 'text-negative'"
-                class="text-h6 text-weight-bold"
               >
                 {{ formatIdrLabaBersih(getLabaBersihForCompany(comp)) }}
               </div>
-              <div class="text-caption text-grey-6 q-mt-xs">Laba Bersih</div>
+              <div class="financial-entity-card__subtitle text-grey-6">Laba Bersih</div>
             </q-card-section>
           </q-card>
         </div>
@@ -55,7 +55,7 @@
       </template>
 
       <!-- Single entity -->
-      <div v-else class="row q-col-gutter-lg">
+      <div v-else class="financial-single-layout row q-col-gutter-lg">
         <div class="col-12 col-md-8">
           <q-card class="bg-white shadow-1 border-radius-8 q-mb-md" flat bordered>
             <q-card-section class="q-pa-lg">
@@ -235,6 +235,16 @@ defineProps<{
 </script>
 
 <style scoped>
+/* Section: ikuti lebar parent (padding horizontal dari q-page induk) */
+.laba-rugi-section {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Jarak vertikal dari filter: diatur di halaman (.financial-report-filter margin-bottom) */
+  margin-top: 0;
+  overflow-x: hidden;
+}
+
 .border-radius-8 {
   border-radius: 8px !important;
 }
@@ -259,10 +269,76 @@ defineProps<{
   z-index: 2;
 }
 
-.compare-cards-row {
-  position: relative;
-  z-index: 1;
-  margin-top: 2px;
+/* Baris ringkasan + tombol: sejajar filter, responsif */
+.financial-multi-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  width: 100%;
+  margin-bottom: clamp(16px, 2vw, 24px);
+}
+.financial-multi-header__hint {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.financial-multi-header__btn {
+  flex-shrink: 0;
+}
+
+/* Grid card entitas: 1 kolom mobile, 2 kolom desktop; gap 16–24px */
+.financial-entity-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(16px, 2.2vw, 24px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+@media (min-width: 1024px) {
+  .financial-entity-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.financial-entity-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: 10px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+.financial-entity-card__inner {
+  padding: clamp(16px, 2vw, 20px) !important;
+}
+.financial-entity-card__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  word-break: break-word;
+}
+.financial-entity-card__value {
+  font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 10px;
+}
+.financial-entity-card__subtitle {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  margin-top: 8px;
+}
+
+.financial-single-layout {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 </style>
 
