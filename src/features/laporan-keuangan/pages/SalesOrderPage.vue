@@ -143,12 +143,7 @@
       <div class="col-12 col-md-3">
         <q-card class="bg-white shadow-1 border-radius-8" flat bordered>
           <q-card-section class="q-pa-md">
-            <div
-              class="text-primary text-h6 text-weight-bold q-mb-xs"
-              style="color: #3b82f6 !important"
-            >
-              {{ kpiOutstanding }}
-            </div>
+            <div class="text-primary text-h6 text-weight-bold q-mb-xs" style="color: #3b82f6 !important">{{ kpiOutstanding }}</div>
             <div class="text-grey-6 text-caption">SO Outstanding</div>
           </q-card-section>
         </q-card>
@@ -445,7 +440,7 @@ const dateButtonLabel = computed(() => {
 
 function extractName(val: string | { name?: string } | undefined): string {
   if (!val) return '-';
-  return typeof val === 'string' ? val : (val?.name ?? '-');
+  return typeof val === 'string' ? val : val?.name ?? '-';
 }
 
 function mapApiToTableRow(item: SalesOrderItem, companyHint?: string) {
@@ -457,7 +452,9 @@ function mapApiToTableRow(item: SalesOrderItem, companyHint?: string) {
     no_so: item.number ?? '-',
     name: extractName(item.customer),
     entitas: extractName(item.branch),
-    tanggal: item.transDate ? date.formatDate(item.transDate, 'YYYY-MM-DD') : '-',
+    tanggal: item.transDate
+      ? date.formatDate(item.transDate, 'YYYY-MM-DD')
+      : '-',
     nilai_so: amount,
     terkirim: '-',
     sisa: '-',
@@ -488,7 +485,9 @@ async function fetchSalesOrders() {
         return;
       }
 
-      const results = await Promise.allSettled(companies.map((company) => getSalesOrders(company)));
+      const results = await Promise.allSettled(
+        companies.map((company) => getSalesOrders(company))
+      );
 
       const allItems: TableRow[] = [];
       const failedCompanies: string[] = [];
@@ -496,7 +495,9 @@ async function fetchSalesOrders() {
       results.forEach((result, index) => {
         const company = companies[index] ?? '';
         if (result.status === 'fulfilled') {
-          const rows = result.value.map((item) => mapApiToTableRow(item, company || undefined));
+          const rows = result.value.map((item) =>
+            mapApiToTableRow(item, company || undefined)
+          );
           allItems.push(...rows);
         } else if (company) {
           failedCompanies.push(company);
@@ -527,7 +528,8 @@ async function fetchSalesOrders() {
       soData.value = items.map((item) => mapApiToTableRow(item, entitas.value));
     }
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Gagal memuat data Sales Order';
+    const msg =
+      err instanceof Error ? err.message : 'Gagal memuat data Sales Order';
     errorMessage.value = msg;
     soData.value = [];
     $q.notify({ type: 'negative', message: msg, position: 'bottom' });
@@ -587,7 +589,9 @@ const filteredTableData = computed(() => {
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
     data = data.filter(
-      (item) => item.name.toLowerCase().includes(q) || item.no_so.toLowerCase().includes(q),
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.no_so.toLowerCase().includes(q)
     );
   }
   // Filter by date range (client-side)
@@ -688,7 +692,8 @@ onMounted(async () => {
     const companies = await getCompanies();
     entitasOptions.value = ['Semua Entitas', ...companies];
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Gagal memuat daftar perusahaan';
+    const msg =
+      err instanceof Error ? err.message : 'Gagal memuat daftar perusahaan';
     $q.notify({
       type: 'warning',
       message: `${msg}. Filter Entitas menggunakan default.`,

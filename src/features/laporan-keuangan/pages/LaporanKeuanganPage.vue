@@ -1,21 +1,5 @@
 <template>
-  <q-page
-    class="financial-report-page q-pa-lg bg-grey-1"
-    style="min-height: 100vh; font-family: 'Inter', sans-serif"
-  >
-    <!-- Top Breadcrumb Area -->
-    <div class="row justify-between items-center q-mb-md">
-      <div>
-        <div class="text-h6 text-dark text-weight-bold" style="line-height: 1.2">
-          Laporan Keuangan
-        </div>
-        <div class="text-caption text-grey-6">
-          FinCore ERP <q-icon name="chevron_right" size="xs" />
-          <span class="text-dark">Laporan Keuangan</span>
-        </div>
-      </div>
-    </div>
-
+  <q-page class="q-pa-lg bg-grey-1" style="min-height: 100vh; font-family: 'Inter', sans-serif">
     <!-- Page Header -->
     <div class="row justify-between items-end q-mb-lg">
       <div class="col-auto">
